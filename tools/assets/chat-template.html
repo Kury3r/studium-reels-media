@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<title>Переписки репетитора</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; font-family: Inter, "Noto Color Emoji", sans-serif; }
+  .layer { position: absolute; inset: 0; }
+
+  /* lock screen intro */
+  #lock { background: radial-gradient(ellipse at 50% 20%, #24396e, #0d1530 55%, #070b18); color: #fff; text-align: center; }
+  #lock .t { margin-top: 330px; font: 200 260px Inter; letter-spacing: -6px; }
+  #lock .d { font: 500 46px Inter; opacity: .8; margin-top: 6px; }
+  #lock .ntf { position: absolute; left: 50px; right: 50px; top: 900px; padding: 36px 40px; border-radius: 56px; background: rgba(255,255,255,.17);
+    text-align: left; display: flex; gap: 30px; align-items: center; backdrop-filter: blur(20px); }
+  #lock .ntf .ic { width: 110px; height: 110px; border-radius: 28px; background: #3a8ee6; flex: none; display: flex; align-items: center; justify-content: center; font: 700 60px Inter; }
+  #lock .ntf b { display: block; font: 700 46px Inter; }
+  #lock .ntf span { display: block; font: 500 42px Inter; opacity: .92; margin-top: 4px; }
+  #lock .ntf .ago { position: absolute; right: 40px; top: 34px; font: 500 32px Inter; opacity: .6; }
+
+  /* chat */
+  #chat { background: #0e1621; color: #fff; transform-origin: 540px 1290px; }
+  #chat .status { position: absolute; left: 0; right: 0; top: 0; height: 120px; display: flex; justify-content: space-between; align-items: center; padding: 30px 60px 0; font: 600 38px Inter; }
+  #chat .header { position: absolute; left: 0; right: 0; top: 120px; height: 150px; background: #17212b; display: flex; align-items: center; padding: 0 36px; gap: 26px; z-index: 2; }
+  #chat .header .arrow { font: 400 64px Inter; color: #6ab2f2; width: 40px; }
+  #chat .header .ava { width: 104px; height: 104px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 700 42px Inter; flex: none; }
+  #chat .header .nm { font: 700 44px Inter; white-space: nowrap; }
+  #chat .header .st { font: 500 32px Inter; color: #6ab2f2; margin-top: 4px; }
+  #chat .wall { position: absolute; left: 0; right: 0; top: 270px; height: 1090px; overflow: hidden;
+    background: radial-gradient(circle at 20% 30%, rgba(80,120,170,.10), transparent 40%), radial-gradient(circle at 80% 70%, rgba(80,170,140,.08), transparent 40%), #0e1621; }
+  .chip { position: absolute; left: 540px; top: 0; background: rgba(0,0,0,.38); padding: 10px 26px; border-radius: 30px; font: 600 28px Inter; color: #cfd8e3; white-space: nowrap; }
+  .chip.big { font: 700 40px Inter; padding: 16px 40px; background: rgba(255,255,255,.14); color: #fff; }
+  .msg { position: absolute; top: 0; max-width: 820px; width: max-content; padding: 18px 28px 12px; font: 500 40px Inter; line-height: 1.24; }
+  .msg.them { left: 36px; background: #182533; border-radius: 36px 36px 36px 10px; transform-origin: 0% 100%; }
+  .msg.me { right: 36px; background: #2b5278; border-radius: 36px 36px 10px 36px; transform-origin: 100% 100%; }
+  .msg .tx { white-space: pre-wrap; }
+  .msg .tm { font: 500 26px Inter; color: #6d7f8f; text-align: right; margin-top: 6px; }
+  .msg.me .tm { color: #7fb8e8; }
+  .msg.photo { padding: 8px; }
+  .msg .ph { width: 560px; height: 560px; border-radius: 30px; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 300px; }
+  .msg .ph img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .msg .ph-cap { padding: 12px 18px 0; }
+  #pill { position: absolute; left: 540px; top: 330px; background: rgba(255,255,255,.92); color: #111; padding: 12px 30px; border-radius: 30px; font: 800 34px Inter; white-space: nowrap; z-index: 6; }
+  #inputbar { position: absolute; left: 0; right: 0; top: 1360px; height: 130px; background: #17212b; display: flex; align-items: center; padding: 0 30px; gap: 22px; }
+  #inputbar .clip { font: 400 54px Inter; color: #7f91a4; width: 50px; text-align: center; }
+  #inputbar .field { flex: 1; font: 500 44px Inter; color: #fff; white-space: nowrap; overflow: hidden; }
+  #inputbar .phd { color: #6d7f8f; }
+  #inputbar .caret { display: inline-block; width: 4px; height: 50px; background: #6ab2f2; vertical-align: -8px; margin-left: 2px; }
+  #inputbar .send { width: 86px; height: 86px; border-radius: 50%; background: #5ea2e6; display: flex; align-items: center; justify-content: center; font: 700 40px Inter; }
+  #kbd { position: absolute; left: 0; right: 0; top: 1490px; bottom: 0; background: #1c1d22; padding: 26px 10px 0; }
+  #kbd .row { display: flex; justify-content: center; gap: 12px; margin-bottom: 18px; }
+  #kbd .k { width: 84px; height: 100px; border-radius: 14px; background: #3a3b42; color: #fff; font: 500 42px Inter; display: flex; align-items: center; justify-content: center; }
+  #kbd .k.on { background: #6a6c78; }
+  #freeze { position: absolute; inset: 0; background: rgba(0,0,0,.62); z-index: 4; }
+  #caption { position: absolute; left: 540px; top: 1080px; background: #fff; color: #000; font: 800 58px Inter; padding: 22px 38px; border-radius: 22px; text-align: center; max-width: 960px; line-height: 1.15; z-index: 7; }
+
+  /* outro: series */
+  #endS { background: radial-gradient(ellipse at 30% 10%, #3c7358, #2a5a43 40%, #1c3f2f 80%); border-radius: 80px 80px 0 0; }
+  #endS .stripes { position: absolute; inset: 0; background: repeating-linear-gradient(115deg, rgba(255,255,255,.035) 0 60px, rgba(0,0,0,.08) 60px 140px, transparent 140px 230px); border-radius: inherit; }
+  #endS .box { position: absolute; left: 540px; top: 860px; text-align: center; color: #f3f0e4; white-space: nowrap; }
+  #endS .a { font: 800 68px Inter; letter-spacing: -1px; }
+  #endS .b { font: 500 38px Inter; opacity: .82; margin-top: 18px; }
+  #endS .c { display: inline-block; margin-top: 50px; background: #f3f0e4; color: #224a37; font: 700 46px Inter; padding: 22px 48px; border-radius: 999px; }
+
+  /* outro: bot (mint glass) */
+  #endB { background: radial-gradient(ellipse at 20% 10%, #f4fbf7, #dcefe5 45%, #c6e3d4); }
+  #endB .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .55; }
+  #endB .cap { position: absolute; left: 70px; right: 70px; top: 150px; text-align: center; color: #224a37; font: 800 64px Inter; line-height: 1.12; letter-spacing: -1px; }
+  #endB .phone { position: absolute; left: 540px; top: 420px; width: 600px; height: 1260px; border-radius: 76px; background: #0b0b0d; padding: 16px;
+    box-shadow: 0 50px 90px rgba(34,74,55,.35), 0 0 0 3px #2a2a2e inset; }
+  #endB .phone img { width: 100%; height: 100%; border-radius: 62px; object-fit: cover; object-position: top; display: block; }
+  #endB .glass { position: absolute; left: 540px; top: 1730px; background: rgba(255,255,255,.55); border: 2px solid rgba(255,255,255,.8); color: #224a37;
+    font: 800 46px Inter; padding: 22px 52px; border-radius: 999px; white-space: nowrap; box-shadow: 0 20px 40px rgba(34,74,55,.18); backdrop-filter: blur(12px); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="layer" id="lock">
+    <div class="t" id="lockT"></div><div class="d" id="lockD"></div>
+    <div class="ntf" id="ntf"><div class="ic">✈</div><div><b id="ntfN"></b><span id="ntfT"></span></div><div class="ago">зараз</div></div>
+  </div>
+  <div class="layer" id="chat">
+    <div class="status"><span id="clock"></span><span>▂▄▆ 🔋</span></div>
+    <div class="header"><div class="arrow">‹</div><div class="ava" id="ava"></div><div><div class="nm" id="nm"></div><div class="st" id="stat">в мережі</div></div></div>
+    <div class="wall" id="wall"></div>
+    <div id="inputbar"><div class="clip">⌇</div><div class="field" id="field"></div><div class="send" id="send">➤</div></div>
+    <div id="kbd"></div>
+    <div id="freeze"></div>
+  </div>
+  <div id="pill"></div>
+  <div id="caption"></div>
+  <div class="layer" id="endS"><div class="stripes"></div><div class="box"><div class="a">переписки репетитора</div><div class="b" id="endSb"></div><div class="c">@CRM_StudiumBot</div></div></div>
+  <div class="layer" id="endB">
+    <div class="blob" style="left:-120px;top:300px;width:520px;height:520px;background:#9fd6b9"></div>
+    <div class="blob" style="left:700px;top:1100px;width:560px;height:560px;background:#b9e2cc"></div>
+    <div class="cap" id="endBcap"></div>
+    <div class="phone" id="endBphone"><img id="endBimg"></div>
+    <div class="glass">Studium · @CRM_StudiumBot</div>
+  </div>
+</div>
+<script>
+/* Episode data is injected by build.py as window.EP (see SKILL.md for the schema). */
+const EP = window.EP;
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const lerp = (a, b, k) => a + (b - a) * k;
+const eOut = k => 1 - Math.pow(1 - k, 3);
+const eIn = k => k * k * k;
+const eIO = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+const eBack = k => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2); };
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// ---------- static setup ----------
+const C = EP.contact;
+$('nm').textContent = C.name;
+$('ava').textContent = C.initials || C.name.slice(0, 2).toUpperCase();
+$('ava').style.background = `linear-gradient(135deg, ${C.color || '#f19bb5'}, ${C.color2 || C.color || '#d65f8a'})`;
+$('pill').textContent = `переписки репетитора #${EP.n}`;
+$('caption').innerHTML = esc(EP.punch).replace(/\n/g, '<br>');
+$('endSb').textContent = EP.outro_line || 'далі буде. скидайте свої історії 👇';
+const OUT = EP.outro || { type: 'series' };
+if (OUT.type === 'bot') { $('endBcap').innerHTML = esc(OUT.caption).replace(/\n/g, '<br>'); $('endBimg').src = OUT.screen; }
+const firstThem = EP.steps.find(s => s.them !== undefined);
+const intro = EP.intro || null;
+if (intro) {
+  $('lockT').textContent = intro.clock || EP.clock;
+  $('lockD').textContent = intro.date || '';
+  $('ntfN').textContent = C.name;
+  $('ntfT').textContent = intro.preview || (firstThem ? firstThem.them : '');
+}
+
+// keyboard
+const KROWS = ['йцукенгшщзх', 'фівапролджє', 'ячсмитьбю'];
+const keyEls = {};
+KROWS.forEach(r => { const row = document.createElement('div'); row.className = 'row';
+  [...r].forEach(ch => { const k = document.createElement('div'); k.className = 'k'; k.textContent = ch; row.appendChild(k); keyEls[ch] = k; });
+  $('kbd').appendChild(row); });
+const sp = document.createElement('div'); sp.className = 'row';
+sp.innerHTML = '<div class="k" style="width:150px;font-size:30px">123</div><div class="k" style="width:560px"></div><div class="k" style="width:150px;font-size:34px">⌫</div>';
+$('kbd').appendChild(sp);
+
+// ---------- timeline ----------
+const SFX = [];
+const items = [];      // bubbles and chips on the wall: {el, at, side}
+const typing = [];     // input-field segments: {a, b, text, mode:'type'|'del'|'hold'}
+const statusT = [];    // [from, to, text]
+const clocks = [];     // [at, clock]
+let t = intro ? 2.0 : 0.6;
+const T0 = t;
+if (intro) { SFX.push([0.35, 'buzz'], [0.95, 'buzz'], [1.45, 'whoosh']); }
+let clock = EP.clock;
+clocks.push([0, clock]);
+const readTime = s => clamp(0.55 + s.length * 0.032, 0.8, 2.1);
+let lastLen = 0;
+
+function addBubble(cls, html, at) {
+  const d = document.createElement('div'); d.className = 'msg ' + cls; d.innerHTML = html;
+  $('wall').appendChild(d); items.push({ el: d, at });
+  return d;
+}
+for (const s of EP.steps) {
+  if (s.clock) { clock = s.clock; clocks.push([t, clock]); }
+  const tm = s.time || clock;
+  if (s.time) clocks.push([t, s.time]);
+  if (s.pause) { t += s.pause; continue; }
+  if (s.chip !== undefined) {
+    const d = document.createElement('div'); d.className = 'chip big'; d.textContent = s.chip;
+    $('wall').appendChild(d); items.push({ el: d, at: t, chip: true });
+    SFX.push([t, 'whoosh']); t += 1.5; lastLen = 0; continue;
+  }
+  if (s.them !== undefined || s.photo !== undefined) {
+    t += lastLen ? readTime(' '.repeat(lastLen)) : 0.3;
+    statusT.push([t - 0.6, t, 'друкує…']);
+    let html;
+    if (s.photo !== undefined) {
+      const ph = s.photo.startsWith('emoji:') ? `<div class="ph" style="background:${s.bg || '#c9b79c'}">${s.photo.slice(6)}</div>`
+                                              : `<div class="ph"><img src="${s.photo}"></div>`;
+      html = ph + (s.text ? `<div class="ph-cap tx">${esc(s.text)}</div>` : '') + `<div class="tm" style="padding:0 14px 6px">${tm}</div>`;
+      addBubble('them photo', html, t);
+    } else {
+      addBubble('them', `<div class="tx">${esc(s.them)}</div><div class="tm">${tm}</div>`, t);
+    }
+    SFX.push([t, 'msg_in']);
+    lastLen = (s.them || s.text || '').length + (s.photo ? 25 : 0);
+    continue;
+  }
+  if (s.me !== undefined) {
+    t += lastLen ? Math.min(readTime(' '.repeat(lastLen)), 1.2) : 0.3;
+    const dur = clamp(s.me.length * 0.045, 0.35, 1.3);
+    typing.push({ a: t, b: t + dur, text: s.me, mode: 'type' });
+    for (let i = 0; i < Math.min(s.me.length, 14); i++) SFX.push([t + (i + .5) * dur / Math.min(s.me.length, 14), 'key']);
+    t += dur + 0.25;
+    addBubble('me', `<div class="tx">${esc(s.me)}</div><div class="tm">${tm} ✓✓</div>`, t);
+    SFX.push([t, 'msg_out']);
+    lastLen = s.me.length; continue;
+  }
+  if (s.fake !== undefined) {
+    t += lastLen ? readTime(' '.repeat(lastLen)) : 0.3;
+    for (const txt of s.fake) {
+      const dur = clamp(txt.length * 0.05, 0.3, 1.2), dd = clamp(txt.length * 0.012, 0.12, 0.3);
+      typing.push({ a: t, b: t + dur, text: txt, mode: 'type' });
+      for (let i = 0; i < Math.min(txt.length, 12); i++) SFX.push([t + (i + .5) * dur / Math.min(txt.length, 12), 'key']);
+      t += dur + 0.3;
+      typing.push({ a: t, b: t + dd, text: txt, mode: 'del' }); SFX.push([t, 'del', dd]);
+      t += dd + 0.25;
+    }
+    lastLen = 0; continue;
+  }
+}
+t += lastLen ? readTime(' '.repeat(lastLen)) * 0.8 : 0.4;
+const FREEZE = t; SFX.push([FREEZE, 'hit']);
+const CHAT_OUT = FREEZE + 2.4;
+const OUT_LEN = OUT.type === 'bot' ? 4.6 : 3.0;
+const END = CHAT_OUT + OUT_LEN;
+SFX.push([CHAT_OUT, 'whoosh']);
+SFX.push([OUT.type === 'bot' ? CHAT_OUT + 0.9 : CHAT_OUT + 0.6, OUT.type === 'bot' ? 'success' : 'ding']);
+
+const LAST_ME = items.length && items[items.length - 1].el.classList.contains('me');
+const BOTTOM = 1070, GAP = 18;
+let heights = null;
+
+function typedText(tt) {
+  for (const s of typing) {
+    if (tt >= s.a && tt < s.b) return s.mode === 'type' ? s.text.slice(0, Math.ceil(s.text.length * prog(tt, s.a, s.b))) : s.text.slice(0, Math.floor(s.text.length * (1 - prog(tt, s.a, s.b))));
+  }
+  for (let i = 0; i < typing.length; i++) {
+    const s = typing[i], nx = typing[i + 1];
+    if (s.mode === 'type' && tt >= s.b && (!nx || tt < nx.a)) {
+      if (nx && nx.mode === 'del') return s.text;
+      // typed 'me' message: hold until it is sent (0.25s)
+      if (tt < s.b + 0.25) return s.text;
+    }
+  }
+  return '';
+}
+
+function render(tt) {
+  if (!heights) heights = items.map(i => i.el.offsetHeight);
+  // intro
+  const lockOut = intro ? eIO(prog(tt, 1.45, 2.0)) : 1;
+  $('lock').style.opacity = 1 - lockOut;
+  if (intro) {
+    let bx = 0; for (const b of [0.35, 0.95]) { const k = prog(tt, b, b + 0.3); if (k > 0 && k < 1) bx = Math.sin(k * Math.PI * 14) * 10 * (1 - k); }
+    const nk = eBack(prog(tt, 0.3, 0.75));
+    $('ntf').style.transform = `translate(${bx}px, ${(1 - nk) * -160}px) scale(${1 + 0.05 * lockOut})`;
+    $('ntf').style.opacity = clamp(prog(tt, 0.3, 0.5));
+  }
+  // chat camera
+  const chatIn = intro ? eOut(prog(tt, 1.5, 2.0)) : 1;
+  const fz = eOut(prog(tt, FREEZE, FREEZE + 0.35));
+  const out = eIO(prog(tt, CHAT_OUT, CHAT_OUT + 0.6));
+  const shake = tt > FREEZE && tt < FREEZE + 0.3 ? Math.sin(tt * 90) * 10 * (1 - prog(tt, FREEZE, FREEZE + 0.3)) : 0;
+  const chat = $('chat');
+  chat.style.opacity = chatIn;
+  chat.style.transformOrigin = LAST_ME ? '1040px 1290px' : '40px 1290px';
+  chat.style.transform = `translate(${shake}px, ${shake * .6}px) scale(${lerp(1.08, 1, chatIn) * (1 + 0.16 * fz)})`;
+  // clock
+  let ck = clocks[0][1]; for (const [a, c] of clocks) if (tt >= a) ck = c; $('clock').textContent = ck;
+  // wall stacking from bottom
+  items.forEach((it, j) => {
+    let off = 0;
+    for (let k = j + 1; k < items.length; k++) off += (heights[k] + GAP) * eOut(prog(tt, items[k].at, items[k].at + 0.25));
+    const a = prog(tt, it.at, it.at + 0.28);
+    const y = BOTTOM - heights[j] - off + (1 - eOut(a)) * 40;
+    if (it.chip) it.el.style.transform = `translate(-50%, ${y}px) scale(${a > 0 ? lerp(.7, 1, eBack(a)) : .7})`;
+    else it.el.style.transform = `translate(0, ${y}px) scale(${a > 0 ? lerp(.85, 1, eBack(a)) : .85})`;
+    it.el.style.opacity = clamp(a * 3);
+    it.el.style.zIndex = j === items.length - 1 && fz > 0 ? 5 : 1;
+  });
+  // status
+  let st = 'в мережі'; for (const [a, b, s] of statusT) if (tt > a && tt < b) st = s; $('stat').textContent = st;
+  // input
+  const txt = typedText(tt);
+  const blink = Math.floor(tt * 2.2) % 2 === 0;
+  $('field').innerHTML = txt ? `${esc(txt)}<span class="caret"></span>` : `<span class="phd">Повідомлення</span>${blink ? '<span class="caret"></span>' : ''}`;
+  $('send').style.opacity = txt ? 1 : 0.25;
+  Object.values(keyEls).forEach(k => k.classList.remove('on'));
+  const last = txt.slice(-1).toLowerCase(); if (last && keyEls[last]) keyEls[last].classList.add('on');
+  // freeze + caption
+  $('freeze').style.opacity = 0.9 * fz;
+  const cp = prog(tt, FREEZE + 0.08, FREEZE + 0.38);
+  $('caption').style.transform = `translate(-50%, -50%) scale(${cp > 0 ? lerp(.6, 1, eBack(cp)) : .6}) rotate(-2deg)`;
+  $('caption').style.opacity = clamp(cp * 3) * (1 - out);
+  $('pill').style.transform = `translateX(-50%) translateY(${-out * 400}px)`;
+  $('pill').style.opacity = chatIn * (1 - out);
+  // outro
+  if (OUT.type === 'bot') {
+    $('endS').style.opacity = 0;
+    const e = $('endB'); e.style.opacity = out; e.style.transform = `scale(${lerp(1.06, 1, out)})`;
+    const pk = eOut(prog(tt, CHAT_OUT + 0.35, CHAT_OUT + 1.2));
+    $('endBphone').style.transform = `translate(-50%, ${(1 - pk) * 900}px) rotate(${(1 - pk) * 6}deg)`;
+    const ck2 = eOut(prog(tt, CHAT_OUT + 0.2, CHAT_OUT + 0.7));
+    document.querySelector('#endB .cap').style.opacity = ck2;
+    document.querySelector('#endB .cap').style.transform = `translateY(${(1 - ck2) * 40}px)`;
+    const gk = eBack(prog(tt, CHAT_OUT + 1.3, CHAT_OUT + 1.75));
+    document.querySelector('#endB .glass').style.transform = `translateX(-50%) scale(${tt > CHAT_OUT + 1.3 ? gk : 0})`;
+  } else {
+    $('endB').style.opacity = 0;
+    $('endS').style.transform = `translateY(${(1 - out) * 1950}px)`;
+    const bk = eOut(prog(tt, CHAT_OUT + 0.45, CHAT_OUT + 0.9));
+    document.querySelector('#endS .box').style.transform = `translate(-50%, ${(1 - bk) * 30}px)`;
+    document.querySelector('#endS .box').style.opacity = bk;
+  }
+}
+
+window.render = render; window.DURATION = END; window.SFX = SFX;
+render(0);
+if (location.search.includes('play')) { const t0 = performance.now(); const loop = () => { render(((performance.now() - t0) / 1000) % END); requestAnimationFrame(loop); }; loop(); }
+</script>
+</body>
+</html>
