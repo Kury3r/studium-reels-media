@@ -1,6 +1,7 @@
 """Episode JSON -> finished 1080x1920 MP4 (series «переписки репетитора», style «мятне скло»).
 
-Previews show the Reels/TikTok unsafe zones in red: no text or key element may sit in a red area.
+Previews show the Reels/TikTok unsafe zones in red. The rule applies to SUBTITLES ONLY: subtitles must sit fully outside the red areas;
+the rest of the picture may use the whole frame.
 
 usage:
   make_reel.py EP.json --design DESIGN --list-voice            # print voice lines as JSON [{id, text, sub}]
