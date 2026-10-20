@@ -121,6 +121,12 @@ def build_html(ep, design, out_dir, style, voice, overlay=False):
         html = tpl.read_text(encoding='utf-8')
         html = html.replace('/*@CORE_CSS*/', (ASSETS / 'core.css').read_text(encoding='utf-8'))
         html = html.replace('<!--@CORE_JS-->', '<script>\n' + (ASSETS / 'core.js').read_text(encoding='utf-8') + '\n</script>')
+        theme = ep.get('theme', 'glass')  # visual theme: "glass" (default, мʼятне скло) or a file in assets/themes/
+        if theme != 'glass':
+            tf = ASSETS / 'themes' / f'{theme}.css'
+            if not tf.exists():
+                sys.exit(f'unknown theme "{theme}": no file {tf}')
+            html = html.replace('</head>', '<style>\n' + tf.read_text(encoding='utf-8') + '\n</style></head>', 1)
     qr_path = pathlib.Path(design) / 'brand' / 'qr-crm-studiumbot.svg'
     qr = qr_path.read_text(encoding='utf-8') if qr_path.exists() else ''
     qr = qr.replace('#f3f0e4', '#ffffff').replace('#F3F0E4', '#ffffff').replace('#0f4a2e', '#0d4d48').replace('#0F4A2E', '#0d4d48')
