@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8">
+<title>format: chat</title>
+<!-- FORMAT «chat» (переписки репетитора): a chat in a glass phone, freeze-frame punchline, optional app screen (sell), outro. -->
+<style>
+/*@CORE_CSS*/
+.sbar{position:absolute;left:30px;top:15px;font-size:13px;font-weight:700;z-index:5}
+.sbar2{position:absolute;right:26px;top:16px;font-size:11px;font-weight:700;letter-spacing:1px;z-index:5;opacity:.8}
+.chip{position:absolute;top:-46px;left:0;right:0;text-align:center;font-size:14px;font-weight:700;color:#0a8f86;letter-spacing:.3px}
+.chip span{display:inline-block;padding:7px 16px;border-radius:16px;background:rgba(255,255,255,.65);border:1px solid #fff}
+#head{position:absolute;left:0;right:0;top:0;height:100px;background:rgba(255,255,255,.72);border-bottom:1px solid #e3efee;z-index:3}
+#ava{position:absolute;left:18px;top:50px;width:40px;height:40px;border-radius:50%;color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center}
+#nm{position:absolute;left:70px;top:51px;font-size:16px;font-weight:800;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+#st{position:absolute;left:70px;top:72px;font-size:12px;color:#0aa58e}
+#badge{position:absolute;right:18px;top:57px;min-width:26px;height:26px;padding:0 8px;border-radius:13px;background:#ff5a4f;color:#fff;font-size:13px;font-weight:800;display:grid;place-items:center}
+#wall{position:absolute;left:0;right:0;top:100px;bottom:66px;overflow:hidden}
+.bub{position:absolute;top:0;max-width:255px;width:max-content;padding:10px 13px 7px;font-size:15.5px;line-height:1.35;box-shadow:0 4px 12px rgba(40,90,90,.1)}
+.bub.them{left:14px;border-radius:18px 18px 18px 6px;background:#fff;transform-origin:0 100%}
+.bub.me{right:14px;border-radius:18px 18px 6px 18px;background:linear-gradient(135deg,#d6f7ee,#c4eef7);transform-origin:100% 100%}
+.bub .tx{white-space:pre-wrap}
+.bub em{display:block;text-align:right;font-style:normal;font-size:10px;opacity:.45;margin-top:2px}
+.bub.me em{color:#0a8f86;opacity:.8}
+.bub.photo{padding:6px}
+.bub .ph{width:210px;height:210px;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:120px}
+.bub .ph img{width:100%;height:100%;object-fit:cover;object-position:top}
+.bub .ph-cap{padding:6px 7px 0}
+.tchip{position:absolute;left:50%;top:0;padding:6px 14px;border-radius:14px;background:rgba(255,255,255,.75);border:1px solid #fff;font-size:12.5px;font-weight:700;color:#0a8f86;white-space:nowrap}
+#input{position:absolute;left:12px;right:12px;bottom:14px;height:44px;border-radius:22px;background:rgba(255,255,255,.88);font-size:14px;padding:12px 18px;white-space:nowrap;overflow:hidden;z-index:3}
+#input .ph{opacity:.5}
+#input .caret{display:inline-block;width:2px;height:17px;background:#0aa58e;vertical-align:-3px;margin-left:1px}
+#send{position:absolute;right:18px;bottom:19px;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#14b89f,#3f9bff);color:#fff;display:grid;place-items:center;font-size:15px;z-index:4}
+#bigclock{position:absolute;left:0;right:0;top:118px;text-align:center;font-size:132px;font-weight:900;letter-spacing:-4px;color:#0a8f86;
+  text-shadow:0 3px 0 #fff,0 10px 40px rgba(255,255,255,.95),0 0 60px rgba(63,224,197,.35);z-index:6}
+#appPhone .scr img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+</style></head><body>
+<div class="layer" id="chatL">
+  <div class="phone" id="phone" style="left:95px;top:132px;width:350px;height:722px;transform-origin:50% 18%">
+    <div class="chip"><span id="chipT">Ваш телефон</span></div>
+    <div class="scr"><div class="island"></div><div class="sbar" id="clock"></div><div class="sbar2">5G ▮▮▮</div>
+      <div id="head"><div id="ava"></div><div id="nm"></div><div id="st">в мережі</div><div id="badge">1</div></div>
+      <div id="wall"></div>
+      <div id="input"></div><div id="send">➤</div>
+    </div>
+  </div>
+</div>
+<div id="bigclock"></div>
+<div class="kw" id="punch"></div>
+
+<div class="layer" id="appL">
+  <div class="kw" id="appCap" style="top:58px;font-size:32px"></div>
+  <div class="phone" id="appPhone" style="left:115px;top:200px;width:310px;height:670px">
+    <div class="scr"><img id="appImg" alt=""></div>
+  </div>
+</div>
+
+<!--@CORE_JS-->
+<script>
+
+// ---------- static ----------
+const C = EP.contact;
+$('nm').textContent = C.name;
+$('ava').textContent = C.initials || C.name.slice(0, 1).toUpperCase();
+$('ava').style.background = `linear-gradient(135deg, ${C.color || '#ffc9a8'}, ${C.color2 || C.color || '#ff9d8a'})`;
+setTag(EP.tag || `переписки репетитора #${EP.n}`);
+$('punch').innerHTML = esc(EP.punch).replace(/\n/g, '<br>');
+const pl = subOf(EP.punch).length;
+$('punch').style.fontSize = (pl <= 14 ? 50 : pl <= 26 ? 40 : 32) + 'px';
+const OUT = EP.outro || { type: 'series' };
+const SELL = OUT.type === 'bot';
+if (SELL) { $('appCap').innerHTML = esc(OUT.caption || '').replace(/\n/g, '<br>'); $('appImg').src = OUT.screen; }
+buildOutro(OUT.slogan || (SELL ? 'Studium робить це за вас.' : 'переписки репетитора'), OUT.slogan2 || (SELL ? 'Перші 2 тижні безкоштовно' : 'далі буде. скидайте свої історії 👇'), SELL ? {} : { small1: 30 });
+const intro = EP.intro || null;
+$('bigclock').textContent = intro ? (intro.clock || EP.clock) : '';
+
+// ---------- timeline ----------
+const items = [];        // {el, at, chip}
+const typing = [];       // {a, b, text, mode}
+const statusT = [];
+const clocks = [[0, EP.clock]];
+let unread = [];          // times of incoming messages before the first 'me'
+const readTime = n => clamp(0.6 + n * 0.03, 0.8, 1.9);
+
+let t = 0.35;
+let INTRO_END = 0;
+if (intro) {
+  SFX.push([0.25, 'whoosh']);
+  const d = seg('intro', intro.say || '', 0.45, intro.sub);
+  INTRO_END = 0.45 + Math.max(d, 1.5) + 0.2;
+  t = INTRO_END;
+}
+let lastLen = 0, firstMe = Infinity;
+function addBubble(cls, html, at) {
+  const d = document.createElement('div'); d.className = 'bub ' + cls; d.innerHTML = html;
+  $('wall').appendChild(d); items.push({ el: d, at }); return d;
+}
+EP.steps.forEach((s, i) => {
+  if (s.clock) clocks.push([t, s.clock]);
+  if (s.time) clocks.push([t, s.time]);
+  let clk = clocks[clocks.length - 1][1];
+  const tm = s.time || clk;
+  const id = 's' + i;
+  if (s.pause) { t += s.pause; return; }
+  if (s.chip !== undefined) {
+    const d = document.createElement('div'); d.className = 'tchip'; d.textContent = s.chip;
+    $('wall').appendChild(d); items.push({ el: d, at: t, chip: true });
+    SFX.push([t, 'whoosh']);
+    const vd = seg(id, s.say, t + 0.1, s.sub);
+    t += Math.max(1.3, vd + 0.35); lastLen = 0; return;
+  }
+  if (s.them !== undefined || s.photo !== undefined) {
+    if (lastLen) t += readTime(lastLen);
+    statusT.push([t - 0.55, t, 'друкує…']);
+    let html;
+    if (s.photo !== undefined) {
+      const ph = s.photo.startsWith('emoji:') ? `<div class="ph" style="background:${s.bg || '#e9dcc8'}">${s.photo.slice(6)}</div>` : `<div class="ph"><img src="${s.photo}"></div>`;
+      html = ph + (s.text ? `<div class="ph-cap tx">${esc(s.text)}</div>` : '') + `<em style="padding:0 6px 3px">${tm}</em>`;
+      addBubble('them photo', html, t);
+    } else addBubble('them', `<div class="tx">${esc(s.them)}</div><em>${tm}</em>`, t);
+    if (t < firstMe) unread.push(t);
+    SFX.push([t, 'msg_in']);
+    const vd = seg(id, s.say, t + 0.12, s.sub);
+    lastLen = 0;
+    t += vd ? vd + 0.3 : readTime((s.them || s.text || '').length + (s.photo ? 20 : 0));
+    return;
+  }
+  if (s.me !== undefined) {
+    if (lastLen) t += 0.3;
+    const dur = clamp(s.me.length * 0.045, 0.35, 1.3);
+    typing.push({ a: t, b: t + dur, text: s.me, mode: 'type' });
+    for (let k = 0; k < Math.min(s.me.length, 14); k++) SFX.push([t + (k + .5) * dur / Math.min(s.me.length, 14), 'key']);
+    t += dur + 0.25;
+    firstMe = Math.min(firstMe, t);
+    addBubble('me', `<div class="tx">${esc(s.me)}</div><em>${tm} ✓✓</em>`, t);
+    SFX.push([t, 'msg_out']);
+    const vd = seg(id, s.say, t + 0.1, s.sub);
+    t += vd ? vd + 0.3 : readTime(s.me.length) * 0.8;
+    lastLen = 0; return;
+  }
+  if (s.fake !== undefined) {
+    const t0 = t;
+    for (const txt of s.fake) {
+      const dur = clamp(txt.length * 0.05, 0.3, 1.2), dd = clamp(txt.length * 0.012, 0.12, 0.3);
+      typing.push({ a: t, b: t + dur, text: txt, mode: 'type' });
+      for (let k = 0; k < Math.min(txt.length, 12); k++) SFX.push([t + (k + .5) * dur / Math.min(txt.length, 12), 'key']);
+      t += dur + 0.3;
+      typing.push({ a: t, b: t + dd, text: txt, mode: 'del' }); SFX.push([t, 'del', dd]);
+      t += dd + 0.25;
+    }
+    const vd = seg(id, s.say, t0 + 0.1, s.sub);
+    t = Math.max(t, t0 + 0.1 + vd + 0.2);
+    lastLen = 0; return;
+  }
+});
+t += 0.35;
+const FREEZE = t; SFX.push([FREEZE, 'hit']);
+const pd = seg('punch', EP.punch_say || EP.punch, FREEZE + 0.25, EP.punch_sub);
+const CHAT_OUT = FREEZE + 0.25 + Math.max(pd, 1.3) + 0.55;
+let APP_IN = null, APP_OUT = null, OUT_IN, END;
+if (SELL) {
+  APP_IN = CHAT_OUT; SFX.push([APP_IN, 'whoosh']);
+  const ad = seg('outro', OUT.say || OUT.caption, APP_IN + 0.8, OUT.sub);
+  APP_OUT = APP_IN + 0.8 + Math.max(ad, 2.6) + 0.35;
+  OUT_IN = APP_OUT; SFX.push([OUT_IN, 'whoosh'], [OUT_IN + 0.5, 'success']);
+  const cd = seg('cta', OUT.cta_say || 'Студіум. Підключайте в боті Сі-Ар-Ем Студіум.', OUT_IN + 0.45, OUT.cta_sub !== undefined ? OUT.cta_sub : (OUT.cta_say ? undefined : 'Studium. Підключайте в боті @CRM_StudiumBot'));
+  END = OUT_IN + 0.45 + Math.max(cd, 2.4) + 0.7;
+} else {
+  OUT_IN = CHAT_OUT; SFX.push([OUT_IN, 'whoosh'], [OUT_IN + 0.5, 'ding']);
+  const od = seg('outro', OUT.say || 'Переписки репетитора. Далі буде.', OUT_IN + 0.45, OUT.sub);
+  END = OUT_IN + 0.45 + Math.max(od, 2.3) + 0.6;
+}
+
+function typedText(tt) {
+  for (const s of typing) if (tt >= s.a && tt < s.b)
+    return s.mode === 'type' ? s.text.slice(0, Math.ceil(s.text.length * prog(tt, s.a, s.b))) : s.text.slice(0, Math.floor(s.text.length * (1 - prog(tt, s.a, s.b))));
+  for (let i = 0; i < typing.length; i++) {
+    const s = typing[i], nx = typing[i + 1];
+    if (s.mode === 'type' && tt >= s.b && (!nx || tt < nx.a)) { if (nx && nx.mode === 'del') return s.text; if (tt < s.b + 0.25) return s.text; }
+  }
+  return '';
+}
+const BOTTOM = 554 - 100 - 66 - 8, GAP = 10;
+let heights = null;
+
+function render(tt) {
+  if (!heights) heights = items.map(i => i.el.offsetHeight);
+
+  // phone: in, slow push, freeze blur, out
+  const pin = intro ? eOut(prog(tt, 0.35, 1.0)) : eOut(prog(tt, 0, 0.5));
+  const fz = eOut(prog(tt, FREEZE, FREEZE + 0.4));
+  const pout = eIO(prog(tt, CHAT_OUT, CHAT_OUT + 0.6));
+  const push = 1 + 0.06 * prog(tt, intro ? INTRO_END : 0.5, FREEZE);
+  const shake = tt > FREEZE && tt < FREEZE + 0.3 ? Math.sin(tt * 80) * 5 * (1 - prog(tt, FREEZE, FREEZE + 0.3)) : 0;
+  const small = intro ? lerp(0.62, 1, eIO(prog(tt, INTRO_END - 0.35, INTRO_END + 0.3))) : 1;
+  css('phone', {
+    transform: `translate(${shake}px, ${(1 - pin) * 260 + (intro ? (1 - small) * 120 : 0) - pout * 160}px) scale(${lerp(0.9, 1, pin) * push * small * (1 - 0.08 * fz)})`,
+    opacity: pin * (1 - pout), filter: `blur(${fz * 5}px)`,
+  });
+  $('chatL').style.opacity = 1 - pout;
+  // big clock intro
+  if (intro) {
+    const ci = eBack(prog(tt, 0.15, 0.6)), co = eIn(prog(tt, INTRO_END - 0.3, INTRO_END + 0.2));
+    css('bigclock', { opacity: clamp(ci * 2) * (1 - co), transform: `translateY(${(1 - ci) * 30 - co * 80}px) scale(${lerp(0.85, 1, ci) * (1 - 0.3 * co)})` });
+  } else $('bigclock').style.opacity = 0;
+  // chip + clock
+  let ck = clocks[0][1]; for (const [a, c] of clocks) if (tt >= a) ck = c;
+  $('clock').textContent = ck; $('chipT').textContent = 'Ваш телефон · ' + ck;
+  // messages
+  items.forEach((it, j) => {
+    let off = 0;
+    for (let k = j + 1; k < items.length; k++) off += (heights[k] + GAP) * eOut(prog(tt, items[k].at, items[k].at + 0.25));
+    const a = prog(tt, it.at, it.at + 0.28);
+    const y = BOTTOM - heights[j] - off + (1 - eOut(a)) * 24;
+    it.el.style.transform = it.chip ? `translate(-50%, ${y}px) scale(${a > 0 ? lerp(.7, 1, eBack(a)) : .7})` : `translate(0, ${y}px) scale(${a > 0 ? lerp(.85, 1, eBack(a)) : .85})`;
+    it.el.style.opacity = clamp(a * 3);
+  });
+  // status + badge
+  let st = 'в мережі'; for (const [a, b, s] of statusT) if (tt > a && tt < b) st = s; $('st').textContent = st;
+  const nUn = unread.filter(u => tt >= u).length;
+  $('badge').textContent = nUn; $('badge').style.opacity = nUn && tt < firstMe ? 1 : 0;
+  // input
+  const txt = typedText(tt);
+  $('input').innerHTML = txt ? `${esc(txt)}<span class="caret"></span>` : `<span class="ph">Повідомлення</span>${Math.floor(tt * 2.2) % 2 ? '<span class="caret"></span>' : ''}`;
+  $('send').style.opacity = txt ? 1 : 0;
+  // punch keyword
+  const kp = prog(tt, FREEZE + 0.1, FREEZE + 0.5);
+  css('punch', { top: '380px', opacity: clamp(kp * 3) * (1 - pout), transform: `scale(${kp > 0 ? lerp(.6, 1, eBack(kp)) : .6})` });
+  // app screen (sell)
+  if (SELL) {
+    const ai = eOut(prog(tt, APP_IN + 0.45, APP_IN + 1.2)), ao = eIO(prog(tt, APP_OUT, APP_OUT + 0.55));
+    $('appL').style.opacity = clamp(ai * 2) * (1 - ao);
+    css('appPhone', { transform: `translateY(${(1 - ai) * 500 - ao * 120}px) rotate(${(1 - ai) * 4}deg)` });
+    const ac = eOut(prog(tt, APP_IN + 0.7, APP_IN + 1.15));
+    css('appCap', { opacity: ac, transform: `translateY(${(1 - ac) * 24}px)` });
+  } else $('appL').style.opacity = 0;
+  // outro
+  const oi = renderOutro(tt, OUT_IN);
+  // series tag
+  renderTag((intro ? clamp(prog(tt, INTRO_END - 0.2, INTRO_END + 0.2)) : 1) * (1 - clamp(oi * 2)));
+}
+
+hideSubsWhen(tt => tt >= OUT_IN + 0.3);   // the final screen shows the words already
+finish(END, render);
+</script>
+</body></html>

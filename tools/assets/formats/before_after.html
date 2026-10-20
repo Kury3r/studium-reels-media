@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8">
+<title>format: before_after</title>
+<!-- FORMAT «before_after» (було → стало): chaos of notes, chats, Excel errors and badges piles up; a glass wipe clears it;
+     the Studium screen rises in a glass phone with check-mark callouts; outro.
+     EP: {format:"before_after", tag?, before:{title?, items:[{type:"chat"|"note"|"excel"|"badge"|"notif"|"text", text}], say, sub?},
+          after:{title?, screen:"screens/<file>.png", callouts:["...", ...], say, sub?}, outro:{say?, sub?, slogan?, slogan2?}}
+     Up to 8 before-items (short: under 30 chars), up to 4 callouts (under 24 chars). -->
+<style>
+/*@CORE_CSS*/
+.ttl{position:absolute;left:0;right:0;top:62px;text-align:center;z-index:9}
+.ttl span{display:inline-block;padding:9px 24px;border-radius:22px;font-size:26px;font-weight:900;letter-spacing:-.3px;color:#fff}
+#tB span{background:linear-gradient(135deg,#d9825e,#b0694a);box-shadow:0 10px 26px rgba(176,105,74,.35)}
+#tA span{background:linear-gradient(135deg,#14b89f,#0a8f86);box-shadow:0 10px 26px rgba(10,143,134,.35)}
+#warm{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(255,190,160,.0),rgba(214,120,90,.28));opacity:0}
+.it{position:absolute;left:0;top:0;transform-origin:50% 50%;z-index:5}
+.it.chat{background:#fff;border-radius:18px 18px 18px 6px;padding:10px 14px;font-size:17px;box-shadow:0 8px 22px rgba(40,90,90,.16);max-width:250px}
+.it.note{background:#fff3b0;padding:16px 16px 18px;font-size:18px;font-weight:600;font-style:italic;color:#5a4a12;width:190px;box-shadow:0 10px 22px rgba(120,100,20,.22)}
+.it.excel{background:#fff;border:1px solid #cfd8d6;font:700 18px "DejaVu Sans Mono",monospace;color:#c0392b;box-shadow:0 8px 20px rgba(40,90,90,.15)}
+.it.excel .gr{display:grid;grid-template-columns:repeat(3,auto)}
+.it.excel .gr div{border:1px solid #e3eae8;padding:6px 10px;min-width:44px}
+.it.excel .gr div.x{background:#fdecea}
+.it.badge{width:62px;height:62px;border-radius:50%;background:#ff5a4f;color:#fff;font-size:26px;font-weight:900;display:grid;place-items:center;box-shadow:0 10px 24px rgba(255,90,79,.4)}
+.it.notif{width:300px;padding:12px 14px;border-radius:20px;background:rgba(255,255,255,.85);display:flex;gap:10px;align-items:center;box-shadow:0 10px 26px rgba(40,90,90,.18);font-size:15px}
+.it.notif i{flex:none;width:38px;height:38px;border-radius:10px;background:#3a8ee6;color:#fff;font-style:normal;font-weight:800;display:grid;place-items:center}
+.it.text{padding:10px 16px;border-radius:16px;background:rgba(255,255,255,.75);font-size:18px;font-weight:800;box-shadow:0 8px 20px rgba(40,90,90,.14)}
+#wipe{position:absolute;top:-200px;width:300px;height:1400px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.96),transparent);filter:blur(12px);transform:rotate(12deg);z-index:10}
+#ph{left:120px;top:128px;width:300px;height:600px}
+.co{position:absolute;padding:10px 15px 10px 12px;border-radius:18px;background:rgba(255,255,255,.88);border:1.5px solid #fff;font-size:16px;font-weight:800;
+  box-shadow:0 12px 28px rgba(30,110,110,.22);white-space:nowrap;z-index:8;display:flex;gap:8px;align-items:center}
+.co b{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#14b89f,#3f9bff);color:#fff;font-size:13px}
+</style></head><body>
+<div id="warm"></div>
+<div class="layer" id="beforeL"></div>
+<div class="layer" id="afterL"><div class="phone" id="ph"><div class="scr"><div class="island"></div><img id="shot" alt=""></div></div></div>
+<div class="ttl" id="tB"><span></span></div>
+<div class="ttl" id="tA"><span></span></div>
+<div id="wipe"></div>
+<!--@CORE_JS-->
+<script>
+setTag(EP.tag || 'було → стало');
+const B = EP.before || {}, A = EP.after || {};
+document.querySelector('#tB span').textContent = B.title || 'Було';
+document.querySelector('#tA span').textContent = A.title || 'Стало';
+$('shot').src = A.screen || '';
+// scattered slots for the chaos, all clear of the title pill
+const SLOTS = [[40, 150, -7], [290, 175, 6], [70, 300, 4], [300, 330, -5], [36, 455, -4], [280, 480, 8], [120, 590, 3], [330, 610, -6]];
+const items = (B.items || []).slice(0, 8).map((it, i) => {
+  const d = document.createElement('div'); d.className = 'it ' + (it.type || 'text');
+  const tx = esc(it.text || '');
+  if (it.type === 'excel') d.innerHTML = `<div class="gr"><div>A1</div><div>B1</div><div>C1</div><div>8</div><div class="x">${tx}</div><div>?</div></div>`;
+  else if (it.type === 'notif') d.innerHTML = `<i>✈</i><div>${tx}</div>`;
+  else d.innerHTML = tx;
+  $('beforeL').appendChild(d); return { el: d, slot: SLOTS[i] };
+});
+const callouts = (A.callouts || []).slice(0, 4).map((c, i) => {
+  const d = document.createElement('div'); d.className = 'co'; d.innerHTML = `<b>✓</b>${esc(c)}`;
+  $('afterL').appendChild(d); return d;
+});
+
+let t = 0.35;
+SFX.push([t, 'whoosh']);
+const bv = seg('before', B.say, t + 0.2, B.sub);
+const bDur = Math.max(bv + 0.5, items.length * 0.42 + 1.3);
+const itemAt = items.map((_, i) => t + 0.45 + i * Math.min(0.5, (bDur - 1.2) / Math.max(1, items.length)));
+itemAt.forEach(a => SFX.push([a, 'msg_in']));
+const WIPE = t + bDur; SFX.push([WIPE, 'whoosh']);
+const AFTER = WIPE + 0.45; SFX.push([AFTER + 0.35, 'success']);
+const av = seg('after', A.say, AFTER + 0.3, A.sub);
+const aDur = Math.max(av + 0.6, callouts.length * 0.55 + 1.6);
+const coAt = callouts.map((_, i) => AFTER + 0.8 + i * Math.min(0.6, (aDur - 1.0) / Math.max(1, callouts.length)));
+coAt.forEach(a => SFX.push([a, 'key']));
+const { OUT_IN, END } = outroTimeline(AFTER + aDur);
+const O = EP.outro || {};
+buildOutro(O.slogan || 'Studium наводить лад.', O.slogan2 || 'Перші 2 тижні безкоштовно', { small1: 30 });
+
+const CO_POS = [[18, 200, 'l'], [null, 300, 'r'], [18, 420, 'l'], [null, 520, 'r']];
+let W = null;
+function frame(tt) {
+  if (!W) W = items.map(it => [it.el.offsetWidth, it.el.offsetHeight]);
+  const pre = tt < WIPE + 0.2;
+  // before
+  const chaos = prog(tt, itemAt[itemAt.length - 1] || t, WIPE);
+  const clear = eIn(prog(tt, WIPE - 0.05, WIPE + 0.4));
+  items.forEach((it, i) => {
+    const [sx, y, r] = it.slot; const x = Math.max(20, Math.min(sx, 520 - W[i][0])); const a = prog(tt, itemAt[i], itemAt[i] + 0.3);
+    const jit = chaos > 0 ? Math.sin(tt * 37 + i * 2) * 3 * chaos : 0;
+    const fly = clear * (x < 200 ? -1 : 1);
+    css(it.el, { transform: `translate(${x + jit + fly * 380}px, ${y + jit * 0.6 - clear * 120}px) rotate(${r + fly * 18}deg) scale(${a > 0 ? lerp(0.5, 1, eBack(a)) : 0.5})`,
+      opacity: clamp(a * 3) * (1 - clear) });
+  });
+  $('warm').style.opacity = 0.9 * chaos * (1 - clear);
+  css('tB', { opacity: clamp(prog(tt, 0.3, 0.6)) * (1 - clear), transform: `scale(${lerp(0.7, 1, eBack(prog(tt, 0.3, 0.7)))})` });
+  // wipe
+  css('wipe', { left: `${lerp(-420, 680, prog(tt, WIPE - 0.1, WIPE + 0.5))}px`, opacity: tt > WIPE - 0.1 && tt < WIPE + 0.55 ? 1 : 0 });
+  // after
+  const oo = eIO(prog(tt, OUT_IN, OUT_IN + 0.5));
+  const ai = eOut(prog(tt, AFTER, AFTER + 0.7));
+  $('afterL').style.opacity = (pre ? clamp(prog(tt, AFTER - 0.1, AFTER + 0.2)) : 1) * (1 - oo);
+  css('ph', { transform: `translateY(${(1 - ai) * 420 - oo * 120}px) scale(${lerp(0.9, 1, ai)})` });
+  css('tA', { opacity: clamp(prog(tt, AFTER + 0.1, AFTER + 0.4)) * (1 - oo), transform: `scale(${lerp(0.7, 1, eBack(prog(tt, AFTER + 0.1, AFTER + 0.5)))})` });
+  callouts.forEach((c, i) => {
+    const [x, y, side] = CO_POS[i]; const k = prog(tt, coAt[i], coAt[i] + 0.35);
+    css(c, { left: side === 'l' ? x + 'px' : 'auto', right: side === 'r' ? '18px' : 'auto', top: y + 'px',
+      opacity: clamp(k * 3), transform: `translateX(${(1 - eOut(k)) * (side === 'l' ? -40 : 40)}px) scale(${k > 0 ? lerp(0.7, 1, eBack(k)) : 0.7})` });
+  });
+  const oi = renderOutro(tt, OUT_IN);
+  renderTag(1 - clamp(oi * 2));
+}
+hideSubsWhen(tt => tt >= OUT_IN + 0.3);
+finish(END, frame);
+</script>
+</body></html>

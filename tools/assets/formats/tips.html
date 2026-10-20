@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8">
+<title>format: tips</title>
+<!-- FORMAT «tips» (N лайфхаків): a hook title, then numbered tip cards one by one, a «save it» prompt, outro.
+     EP: {format:"tips", tag?, title, title_say, tips:[{title, text?, emoji?, say}], save_say?, save_text?, outro:{say?, sub?, slogan?, slogan2?}}
+     2 to 5 tips. Tip title under 40 chars, text under 90 chars. Supports *highlight* and \n. -->
+<style>
+/*@CORE_CSS*/
+#title{top:200px;font-size:40px}
+#title .pin{display:block;font-size:64px;margin-bottom:14px;text-shadow:none}
+#dots{position:absolute;left:0;right:0;top:180px;display:flex;justify-content:center;gap:10px;z-index:8}
+#dots i{width:34px;height:8px;border-radius:4px;background:rgba(255,255,255,.75);box-shadow:0 2px 6px rgba(30,110,110,.12);overflow:hidden;position:relative}
+#dots i b{position:absolute;inset:0;background:linear-gradient(90deg,#14b89f,#3f9bff);transform-origin:0 50%}
+.tip{position:absolute;left:34px;right:34px;top:225px;padding:26px 26px 30px;border-radius:32px;background:rgba(255,255,255,.66);
+  border:1.5px solid rgba(255,255,255,.95);box-shadow:0 22px 54px rgba(30,110,110,.2);backdrop-filter:blur(16px)}
+.tip .top{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.tip .num{width:66px;height:66px;border-radius:50%;background:linear-gradient(135deg,#14b89f,#0a8f86);color:#fff;font-size:34px;font-weight:900;
+  display:grid;place-items:center;box-shadow:0 10px 24px rgba(10,143,134,.35)}
+.tip .em{font-size:44px}
+.tip h2{font-size:31px;font-weight:900;line-height:1.12;letter-spacing:-.6px;color:#123b3a}
+.tip p{margin-top:12px;font-size:19.5px;line-height:1.38;font-weight:550;color:#2a524c}
+#save{position:absolute;left:0;right:0;top:330px;text-align:center;z-index:9}
+#save span{display:inline-block;padding:18px 28px;border-radius:28px;background:linear-gradient(135deg,#14b89f,#0a8f86);color:#fff;font-size:28px;font-weight:900;
+  box-shadow:0 16px 40px rgba(10,143,134,.4)}
+</style></head><body>
+<div class="kw" id="title"></div>
+<div id="dots"></div>
+<div class="layer" id="tipsL"></div>
+<div id="save"><span></span></div>
+<!--@CORE_JS-->
+<script>
+setTag(EP.tag || 'лайфхаки репетитора');
+const tips = (EP.tips || []).slice(0, 5);
+$('title').innerHTML = `<span class="pin">📌</span>` + rich(EP.title || '');
+const tl = plain(EP.title || '').length;
+$('title').style.fontSize = (tl <= 40 ? 40 : tl <= 70 ? 34 : 29) + 'px';
+document.querySelector('#save span').textContent = EP.save_text || 'Збережіть, щоб не загубити 📌';
+const cards = tips.map((p, i) => {
+  const d = document.createElement('div'); d.className = 'tip';
+  d.innerHTML = `<div class="top"><div class="num">${i + 1}</div>${p.emoji ? `<div class="em">${esc(p.emoji)}</div>` : ''}</div>` +
+    `<h2>${rich(p.title || '')}</h2>` + (p.text ? `<p>${rich(p.text)}</p>` : '');
+  $('tipsL').appendChild(d); return d;
+});
+$('dots').innerHTML = tips.map(() => '<i><b></b></i>').join('');
+const dots = [...document.querySelectorAll('#dots b')];
+
+let t = 0.35;
+SFX.push([t, 'whoosh']);
+const tv = seg('title', EP.title_say || plain(EP.title || ''), t + 0.2, EP.title_sub);
+const TIPS0 = t + Math.max(2.0, tv + 0.6);
+const at = [], dur = [];
+let c = TIPS0;
+tips.forEach((p, i) => {
+  at.push(c); SFX.push([c, 'whoosh'], [c + 0.25, 'msg_in']);
+  const vd = seg('t' + i, p.say, c + 0.3, p.sub);
+  const d = Math.max(2.4, vd + 0.75); dur.push(d); c += d;
+});
+const SAVE = c; SFX.push([SAVE + 0.1, 'success']);
+const sv = seg('save', EP.save_say || 'Збережіть, щоб не загубити.', SAVE + 0.2, EP.save_sub);
+const { OUT_IN, END } = outroTimeline(SAVE + Math.max(1.6, sv + 0.6));
+const O = EP.outro || {};
+buildOutro(O.slogan || 'Більше порад — у Studium', O.slogan2 || 'Перші 2 тижні безкоштовно', { small1: 28 });
+
+function frame(tt) {
+  const ti = eBack(prog(tt, 0.3, 0.75)), to = eIn(prog(tt, TIPS0 - 0.3, TIPS0 + 0.1));
+  css('title', { opacity: clamp(prog(tt, 0.3, 0.5)) * (1 - to), transform: `translateY(${(1 - ti) * 40 - to * 80}px) scale(${lerp(0.85, 1, ti)})` });
+  const dotsOn = tt > TIPS0 - 0.2 && tt < SAVE + 0.2;
+  $('dots').style.opacity = dotsOn ? 1 : 0;
+  dots.forEach((d, i) => d.style.transform = `scaleX(${clamp((tt - at[i]) / dur[i])})`);
+  cards.forEach((el, i) => {
+    const a = eOut(prog(tt, at[i], at[i] + 0.45));
+    const endT = i + 1 < cards.length ? at[i + 1] : SAVE;
+    const b = eIn(prog(tt, endT - 0.05, endT + 0.35));
+    css(el, { opacity: clamp(prog(tt, at[i], at[i] + 0.2)) * (1 - b), transform: `translateX(${(1 - a) * 420 - b * 420}px) rotate(${(1 - a) * 4 - b * 4}deg)` });
+  });
+  const so = eIO(prog(tt, OUT_IN, OUT_IN + 0.4));
+  const sk = prog(tt, SAVE + 0.05, SAVE + 0.45);
+  css('save', { opacity: clamp(sk * 3) * (1 - so), transform: `scale(${sk > 0 ? lerp(0.6, 1, eBack(sk)) : 0.6}) rotate(${Math.sin(tt * 6) * 1.5}deg)` });
+  const oi = renderOutro(tt, OUT_IN);
+  renderTag(1 - clamp(oi * 2));
+}
+hideSubsWhen(tt => tt >= OUT_IN + 0.3);
+finish(END, frame);
+</script>
+</body></html>

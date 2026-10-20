@@ -4,7 +4,8 @@ Previews show the Reels/TikTok unsafe zones in red. The rule applies to SUBTITLE
 the rest of the picture may use the whole frame.
 
 usage:
-  make_reel.py EP.json --design DESIGN --list-voice            # print voice lines as JSON [{id, text, sub}]
+  make_reel.py EP.json --design DESIGN --list-voice            # print the line ids and the one-take voice prompt
+  make_reel.py EP.json --design DESIGN --split-take take.mp3 --voice-dir DIR   # cut the take into one file per line
   make_reel.py EP.json OUT.png --design DESIGN --preview [--voice-dir DIR]   # 6-frame contact sheet
   make_reel.py EP.json OUT.mp4 --design DESIGN [--voice-dir DIR] [--fps 30]  # final video
 
@@ -13,7 +14,7 @@ With it, timing follows the real audio and the voice is mixed in; without it, ti
 except for interface sounds. --style dark uses the old dark Telegram template (no voice support).
 Paths in the episode ("photo", "outro.screen") are relative to the design repo, e.g. "screens/14-student-package.png".
 """
-import argparse, json, pathlib, shutil, subprocess, sys, tempfile, time
+import argparse, json, os, pathlib, shutil, subprocess, sys, tempfile, time
 import numpy as np
 from scipy.io import wavfile
 
@@ -42,9 +43,37 @@ def decode(path):
     return np.frombuffer(r.stdout, dtype=np.int16).astype(np.float64) / 32768
 
 
+SEP = ' [long pause] '
+
+
+def split_take(take, ids, out_dir):
+    """Cut one voice take (all lines joined with [long pause]) into <id>.wav files at the len(ids)-1 longest silences."""
+    r = subprocess.run(['ffmpeg', '-hide_banner', '-i', str(take), '-af', 'silencedetect=n=-40dB:d=0.2', '-f', 'null', '-'],
+                       capture_output=True, text=True)
+    import re
+    starts = [float(x) for x in re.findall(r'silence_start: ([0-9.]+)', r.stderr)]
+    ends = [float(x) for x in re.findall(r'silence_end: ([0-9.]+)', r.stderr)]
+    sil = list(zip(starts, ends))
+    total = audio_duration(take)
+    need = len(ids) - 1
+    inner = [(a, b) for a, b in sil if a > 0.05 and b < total - 0.05]
+    gaps = sorted(sorted(inner, key=lambda g: g[1] - g[0], reverse=True)[:need])
+    if len(gaps) < need or (need and min(b - a for a, b in gaps) < 0.6):
+        sys.exit(f'SPLIT FAILED: found {len(gaps)} long pauses, need {need}. Generate the lines one by one instead.')
+    lead = sil[0][1] if sil and sil[0][0] <= 0.05 else 0.0
+    tail = sil[-1][0] if sil and sil[-1][1] >= total - 0.05 else total
+    bounds = [max(0.0, lead - 0.04)] + [x for a, b in gaps for x in (a + 0.08, b - 0.04)] + [min(total, tail + 0.08)]
+    out = pathlib.Path(out_dir); out.mkdir(parents=True, exist_ok=True)
+    for i, sid in enumerate(ids):
+        a, b = bounds[2 * i], bounds[2 * i + 1]
+        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', str(take), '-ss', f'{a:.3f}', '-to', f'{b:.3f}', '-ac', '1', '-ar', '48000',
+                        str(out / f'{sid}.wav')], check=True)
+    return [(sid, round(bounds[2 * i + 1] - bounds[2 * i], 2)) for i, sid in enumerate(ids)]
+
+
 def voice_files(voice_dir):
     out = {}
-    if voice_dir:
+    if voice_dir and pathlib.Path(voice_dir).is_dir():
         for f in pathlib.Path(voice_dir).iterdir():
             if f.suffix.lower() in ('.mp3', '.wav', '.m4a', '.ogg'):
                 out[f.stem] = f
@@ -60,32 +89,67 @@ SAFE_OVERLAY = '''<div style="position:absolute;inset:0;pointer-events:none;z-in
 </div>'''
 
 
+FORMATS = ('chat', 'pov', 'before_after', 'tips', 'demo', 'quiz')
+
+
 def build_html(ep, design, out_dir, style, voice, overlay=False):
     ep = json.loads(json.dumps(ep))
     def fix(p):
-        if not p or p.startswith(('emoji:', 'file:', 'http', 'data:')):
+        if not p or not isinstance(p, str) or p.startswith(('emoji:', 'file:', 'http', 'data:')):
             return p
         return (pathlib.Path(design) / p).resolve().as_uri()
-    for s in ep['steps']:
-        if 'photo' in s:
-            s['photo'] = fix(s['photo'])
-    if ep.get('outro', {}).get('screen'):
-        ep['outro']['screen'] = fix(ep['outro']['screen'])
+    def walk(o):  # every "screen"/"photo" value anywhere in the episode is a design-repo path
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if k in ('screen', 'photo') and isinstance(v, str):
+                    o[k] = fix(v)
+                else:
+                    walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+    walk(ep)
     if voice:
         ep['voice'] = voice
-    tpl = ASSETS / ('glass-template.html' if style == 'glass' else 'chat-template.html')
-    html = tpl.read_text(encoding='utf-8')
-    if '{{QR}}' in html:
-        qr_path = pathlib.Path(design) / 'brand' / 'qr-crm-studiumbot.svg'
-        qr = qr_path.read_text(encoding='utf-8') if qr_path.exists() else ''
-        qr = qr.replace('#f3f0e4', '#ffffff').replace('#F3F0E4', '#ffffff').replace('#0f4a2e', '#0d4d48').replace('#0F4A2E', '#0d4d48')
-        html = html.replace('{{QR}}', qr)
+    if style == 'dark':
+        html = (ASSETS / 'chat-template.html').read_text(encoding='utf-8')
+    else:
+        fmt = ep.get('format', 'chat')
+        tpl = ASSETS / 'formats' / f'{fmt}.html'
+        if not tpl.exists():
+            sys.exit(f'unknown format "{fmt}": no template {tpl}')
+        html = tpl.read_text(encoding='utf-8')
+        html = html.replace('/*@CORE_CSS*/', (ASSETS / 'core.css').read_text(encoding='utf-8'))
+        html = html.replace('<!--@CORE_JS-->', '<script>\n' + (ASSETS / 'core.js').read_text(encoding='utf-8') + '\n</script>')
+    qr_path = pathlib.Path(design) / 'brand' / 'qr-crm-studiumbot.svg'
+    qr = qr_path.read_text(encoding='utf-8') if qr_path.exists() else ''
+    qr = qr.replace('#f3f0e4', '#ffffff').replace('#F3F0E4', '#ffffff').replace('#0f4a2e', '#0d4d48').replace('#0F4A2E', '#0d4d48')
+    html = html.replace('{{QR}}', qr)
+    html = html.replace('<body>', '<body><div id="qrsrc" hidden>' + qr + '</div>', 1)
     html = html.replace('<script>\n', '<script>window.EP = ' + json.dumps(ep, ensure_ascii=False) + ';</script>\n<script>\n', 1)
     if overlay and style == 'glass':
         html = html.replace('</body>', SAFE_OVERLAY + '</body>')
     p = pathlib.Path(out_dir) / 'episode.html'
     p.write_text(html, encoding='utf-8')
     return p
+
+
+def _render_frames(args):
+    """Worker: render every frame i with i % n == k to JPEG files (runs in its own process)."""
+    page_uri, k, n, total, fps, outdir, vw, vh, scale = args
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        kw = {'args': ['--hide-scrollbars', '--force-color-profile=srgb', '--allow-file-access-from-files']}
+        ch = find_chrome()
+        if ch: kw['executable_path'] = ch
+        b = p.chromium.launch(**kw)
+        pg = b.new_page(viewport={'width': vw, 'height': vh}, device_scale_factor=scale)
+        pg.goto(page_uri, wait_until='load'); pg.evaluate('document.fonts.ready'); pg.wait_for_timeout(300)
+        for i in range(k, total, n):
+            pg.evaluate('t => window.render(t)', i / fps)
+            pg.screenshot(path=f'{outdir}/f{i:05d}.jpg', type='jpeg', quality=92)
+        b.close()
+    return k
 
 
 def mix(cues, segments, files, duration, path):
@@ -120,7 +184,9 @@ def main():
     ap.add_argument('--preview', action='store_true')
     ap.add_argument('--list-voice', action='store_true')
     ap.add_argument('--voice-dir')
+    ap.add_argument('--split-take', help='one mp3 with every voice line joined by [long pause]; cut into --voice-dir')
     ap.add_argument('--style', choices=['glass', 'dark'], default='glass')
+    ap.add_argument('--workers', type=int, default=max(1, (os.cpu_count() or 2)))
     a = ap.parse_args()
     ep = json.loads(pathlib.Path(a.episode).read_text(encoding='utf-8'))
     files = voice_files(a.voice_dir)
@@ -146,9 +212,20 @@ def main():
         dur = pg.evaluate('window.DURATION')
         cues = pg.evaluate('window.SFX')
         segments = pg.evaluate('window.SEGMENTS || []')
-        if a.list_voice:
-            print(json.dumps([{'id': s['id'], 'text': s['text'], 'sub': s['sub']} for s in segments], ensure_ascii=False, indent=1))
-            b.close(); return
+        if a.list_voice or a.split_take:
+            empty = [s['id'] for s in segments if not s['sub']]
+            if empty:
+                sys.exit('ERROR: voice lines without words (only tags) are not allowed: ' + ', '.join(empty))
+            b.close()
+            if a.split_take:
+                if not a.voice_dir:
+                    sys.exit('--split-take needs --voice-dir')
+                for sid, d in split_take(a.split_take, [s['id'] for s in segments], a.voice_dir):
+                    print(f'{sid}: {d}s')
+                return
+            print('LINES: ' + ', '.join(s['id'] for s in segments))
+            print('TAKE: ' + SEP.join(s['text'] for s in segments))
+            return
         missing = [s['id'] for s in segments if a.voice_dir and s['id'] not in files]
         if missing:
             print('WARNING: no audio for', ', '.join(missing), file=sys.stderr)
@@ -159,25 +236,25 @@ def main():
             for t in ts:
                 pg.evaluate('t => window.render(t)', t)
                 f = work / f'f{t:.2f}.png'; pg.screenshot(path=str(f))
-                frames.append(Image.open(f).resize((360, 640)))
-            sheet = Image.new('RGB', (360 * 6 + 50, 640), 'white')
+                frames.append(Image.open(f).resize((270, 480)))
+            sheet = Image.new('RGB', (270 * 6 + 40, 480), 'white')
             for i, im in enumerate(frames):
-                sheet.paste(im, (i * 370, 0))
+                sheet.paste(im, (i * 278, 0))
             sheet.save(a.out); b.close()
             print(f'preview: {a.out} (duration {dur:.1f}s)'); return
         nfr = int(dur * a.fps + 0.999)
-        silent = work / 'video.mp4'
-        ff = subprocess.Popen(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', str(a.fps), '-i', '-',
-                               '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', str(silent)],
-                              stdin=subprocess.PIPE)
-        t0 = time.time()
-        for i in range(nfr):
-            pg.evaluate('t => window.render(t)', i / a.fps)
-            ff.stdin.write(pg.screenshot(type='jpeg', quality=92))
-        ff.stdin.close()
-        if ff.wait() != 0:
-            sys.exit('ffmpeg failed')
         b.close()
+    import multiprocessing as mp
+    frames_dir = work / 'frames'; frames_dir.mkdir()
+    n = max(1, min(a.workers, nfr))
+    t0 = time.time()
+    with mp.get_context('spawn').Pool(n) as pool:
+        pool.map(_render_frames, [(page_path.as_uri(), k, n, nfr, a.fps, str(frames_dir), vw, vh, scale) for k in range(n)])
+    silent = work / 'video.mp4'
+    r = subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-framerate', str(a.fps), '-i', str(frames_dir / 'f%05d.jpg'),
+                        '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', str(silent)])
+    if r.returncode != 0:
+        sys.exit('ffmpeg failed')
     wav = str(work / 'mix.wav')
     mix(cues, segments, files, dur, wav)
     r = subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', str(silent), '-i', wav, '-map', '0:v', '-map', '1:a',

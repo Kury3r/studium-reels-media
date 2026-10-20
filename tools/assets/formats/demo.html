@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8">
+<title>format: demo</title>
+<!-- FORMAT «demo» (як це працює): a hook line, then real app screens in a glass phone; a glass hand taps points on the screen,
+     the camera leans in, a big keyword names what happens; outro.
+     EP: {format:"demo", tag?, hook, hook_say, steps:[{screen:"screens/<file>.png", tap?:[x,y], kw, say, sub?}], outro:{say?, sub?, slogan?, slogan2?}}
+     tap = fractions of the screenshot (0..1 from its left/top edge); avoid taps in the bottom 12% of the screen. 2 to 5 steps. -->
+<style>
+/*@CORE_CSS*/
+#hook{top:300px;font-size:40px}
+#ph{left:110px;top:150px;width:320px;height:660px;transform-origin:50% 40%}
+#ph .scr{overflow:hidden}
+.shot{position:absolute;left:0;top:0;width:100%;height:auto;display:block}
+#kwS{top:66px;font-size:31px;left:24px;right:24px}
+</style></head><body>
+<div class="kw" id="hook"></div>
+<div class="layer" id="demoL">
+  <div class="phone" id="ph"><div class="scr" id="scr"><div class="island"></div></div>
+    <div class="ripple" id="rip"></div><div class="hand" id="hand"></div></div>
+</div>
+<div class="kw" id="kwS"></div>
+<!--@CORE_JS-->
+<script>
+setTag(EP.tag || 'як це працює');
+const steps = (EP.steps || []).slice(0, 5);
+$('hook').innerHTML = rich(EP.hook || '');
+const hl = plain(EP.hook || '').length;
+$('hook').style.fontSize = (hl <= 30 ? 42 : hl <= 60 ? 35 : 30) + 'px';
+$('hand').innerHTML = HAND_SVG;
+const SW = 320 - 22;                       // screen width inside the phone (CSS px)
+const imgs = steps.map(s => { const im = document.createElement('img'); im.className = 'shot'; im.src = s.screen; $('scr').appendChild(im); return im; });
+
+let t = 0.35;
+SFX.push([t, 'whoosh']);
+const hv = seg('hook', EP.hook_say || plain(EP.hook || ''), t + 0.15, EP.hook_sub);
+const PH_IN = t + Math.max(1.6, hv + 0.35);
+const at = [], dur = [];
+let c = PH_IN + 0.35;
+steps.forEach((s, i) => {
+  at.push(c);
+  if (i) SFX.push([c, 'whoosh']);
+  if (s.tap) SFX.push([c + 0.95, 'msg_out']);
+  const vd = seg('s' + i, s.say, c + 0.15, s.sub);
+  const d = Math.max(2.6, vd + 0.7); dur.push(d); c += d;
+});
+const { OUT_IN, END } = outroTimeline(c);
+const O = EP.outro || {};
+buildOutro(O.slogan || 'Спробуйте самі.', O.slogan2 || 'Перші 2 тижні безкоштовно', { small1: 32 });
+
+function stepAt(tt) { let k = 0; at.forEach((a, i) => { if (tt >= a - 0.25) k = i; }); return k; }
+function frame(tt) {
+  const hk = eBack(prog(tt, 0.3, 0.75)), ho = eIn(prog(tt, PH_IN - 0.2, PH_IN + 0.25));
+  css('hook', { opacity: clamp(prog(tt, 0.3, 0.5)) * (1 - ho), transform: `translateY(${(1 - hk) * 30 - ho * 140}px) scale(${lerp(0.85, 1, hk) * lerp(1, 0.8, ho)})` });
+  const pin = eOut(prog(tt, PH_IN, PH_IN + 0.7)), pout = eIO(prog(tt, OUT_IN, OUT_IN + 0.55));
+  const k = stepAt(tt), s = steps[k] || {};
+  // camera: lean in toward the tap point after the tap, ease back before the next step
+  let zx = 0.5, zy = 0.4, z = 1;
+  if (s.tap) {
+    const zin = eIO(prog(tt, at[k] + 1.05, at[k] + 1.6)), zout = eIO(prog(tt, at[k] + dur[k] - 0.45, at[k] + dur[k] - 0.05));
+    z = 1 + 0.16 * zin * (1 - zout); zx = s.tap[0]; zy = Math.min(s.tap[1], 0.85);
+  }
+  css('ph', { transformOrigin: `${zx * 100}% ${zy * 100}%`, transform: `translateY(${(1 - pin) * 520 - pout * 140}px) scale(${lerp(0.9, 1, pin) * z})`, opacity: clamp(pin * 2) * (1 - pout) });
+  // screens slide in from the right
+  imgs.forEach((im, i) => {
+    const a = i === 0 ? 1 : eIO(prog(tt, at[i] - 0.25, at[i] + 0.25));
+    const next = i + 1 < imgs.length ? eIO(prog(tt, at[i + 1] - 0.25, at[i + 1] + 0.25)) : 0;
+    css(im, { transform: `translateX(${(1 - a) * SW - next * SW * 0.3}px)`, opacity: i === 0 || a > 0 ? 1 : 0 });
+  });
+  // hand + ripple
+  let hx = 330, hy = 700, hop = 0, press = 1, rip = 0;
+  if (s.tap && tt >= at[k]) {
+    const tx = 11 + s.tap[0] * SW, ty = 11 + s.tap[1] * (SW * 2532 / 1170);
+    const m = eIO(prog(tt, at[k] + 0.25, at[k] + 0.9));
+    hx = lerp(300, tx, m); hy = lerp(720, ty, m);
+    hop = clamp(prog(tt, at[k] + 0.2, at[k] + 0.4)) * (1 - clamp(prog(tt, at[k] + dur[k] - 0.5, at[k] + dur[k] - 0.2)));
+    press = 1 - 0.14 * Math.sin(Math.PI * prog(tt, at[k] + 0.9, at[k] + 1.15));
+    rip = prog(tt, at[k] + 0.95, at[k] + 1.55);
+    css('rip', { left: tx + 'px', top: ty + 'px', opacity: rip > 0 && rip < 1 ? 1 - rip : 0, transform: `scale(${lerp(0.3, 1.6, rip)})` });
+  } else css('rip', { opacity: 0 });
+  css('hand', { opacity: hop, transform: `translate(${hx - 18}px, ${hy - 4}px) scale(${press})` });
+  // keyword above the phone
+  const kwText = s.kw || '';
+  if ($('kwS').dataset.k !== String(k)) { $('kwS').innerHTML = rich(kwText); $('kwS').dataset.k = String(k); }
+  const kk = eBack(prog(tt, at[k] + 0.15, at[k] + 0.55));
+  const ko = k + 1 < at.length ? eIn(prog(tt, at[k + 1] - 0.3, at[k + 1] - 0.05)) : eIn(prog(tt, OUT_IN - 0.3, OUT_IN));
+  css('kwS', { opacity: tt >= at[0] ? clamp(prog(tt, at[k] + 0.15, at[k] + 0.35)) * (1 - ko) : 0, transform: `scale(${lerp(0.8, 1, kk)})` });
+  const oi = renderOutro(tt, OUT_IN);
+  renderTag(1 - clamp(oi * 2));
+}
+hideSubsWhen(tt => tt >= OUT_IN + 0.3);
+finish(END, frame);
+</script>
+</body></html>

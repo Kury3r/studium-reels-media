@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8">
+<title>format: quiz</title>
+<!-- FORMAT «quiz»: a question, 2–4 answer buttons, a 3-second countdown, the reveal with an explanation, a comment prompt, outro.
+     EP: {format:"quiz", tag?, question, question_say, options:["...", ...], correct:<index>, think_say?, reveal_say, explain?, comment_text?, outro:{...}}
+     Question under 80 chars, options under 28 chars. Never invent statistics: the answer must be an opinion, a fact about Studium, or a number from the brief. -->
+<style>
+/*@CORE_CSS*/
+#q{position:absolute;left:34px;right:34px;top:96px;padding:22px 24px;border-radius:28px;background:rgba(255,255,255,.66);border:1.5px solid rgba(255,255,255,.95);
+  box-shadow:0 20px 50px rgba(30,110,110,.2);backdrop-filter:blur(16px);font-size:27px;font-weight:900;line-height:1.16;letter-spacing:-.5px;text-align:center}
+#q .ic{display:block;font-size:40px;margin-bottom:8px}
+.opt{position:absolute;left:54px;right:54px;height:66px;border-radius:22px;background:rgba(255,255,255,.78);border:1.5px solid #fff;display:flex;align-items:center;gap:14px;
+  padding:0 18px;font-size:21px;font-weight:800;box-shadow:0 10px 26px rgba(30,110,110,.14)}
+.opt .l{flex:none;width:38px;height:38px;border-radius:50%;background:#e2f3ef;color:#0a8f86;font-weight:900;display:grid;place-items:center;font-size:18px}
+.opt .ok{margin-left:auto;font-size:24px;opacity:0}
+.opt.right{background:linear-gradient(135deg,#14b89f,#0a8f86);color:#fff;border-color:rgba(255,255,255,.6)}
+.opt.right .l{background:rgba(255,255,255,.25);color:#fff}
+#ring{position:absolute;left:50%;top:0;width:84px;height:84px;margin-left:-42px;z-index:6}
+#ring svg{width:84px;height:84px;transform:rotate(-90deg)}
+#ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:34px;font-weight:900;color:#0a8f86}
+#ex{position:absolute;left:44px;right:44px;top:0;padding:14px 18px;border-radius:20px;background:rgba(255,255,255,.75);border:1px solid #fff;font-size:18.5px;line-height:1.36;font-weight:600;text-align:center;
+  box-shadow:0 10px 26px rgba(30,110,110,.14)}
+#cm{position:absolute;left:0;right:0;top:0;text-align:center;z-index:7}
+#cm span{display:inline-block;padding:13px 22px;border-radius:24px;background:linear-gradient(135deg,#14b89f,#0a8f86);color:#fff;font-size:22px;font-weight:900;box-shadow:0 14px 34px rgba(10,143,134,.38)}
+</style></head><body>
+<div id="q"></div>
+<div class="layer" id="opts"></div>
+<div id="ring"><svg viewBox="0 0 84 84"><circle cx="42" cy="42" r="36" fill="rgba(255,255,255,.8)" stroke="#e2f3ef" stroke-width="7"/>
+  <circle id="arc" cx="42" cy="42" r="36" fill="none" stroke="#14b89f" stroke-width="7" stroke-linecap="round" stroke-dasharray="226.2" stroke-dashoffset="0"/></svg><b id="num">3</b></div>
+<div id="ex"></div>
+<div id="cm"><span></span></div>
+<!--@CORE_JS-->
+<script>
+setTag(EP.tag || 'квіз для репетиторів');
+const opts = (EP.options || []).slice(0, 4);
+const RIGHT = EP.correct || 0;
+$('q').innerHTML = '<span class="ic">🤔</span>' + rich(EP.question || '');
+const L = ['А', 'Б', 'В', 'Г'];
+const els = opts.map((o, i) => {
+  const d = document.createElement('div'); d.className = 'opt';
+  d.innerHTML = `<span class="l">${L[i]}</span><span>${esc(o)}</span><span class="ok">✓</span>`;
+  $('opts').appendChild(d); return d;
+});
+$('ex').innerHTML = rich(EP.explain || '');
+$('ex').style.display = EP.explain ? '' : 'none';
+document.querySelector('#cm span').textContent = EP.comment_text || 'А ви як думаєте? Пишіть у коментарях 👇';
+
+let t = 0.35;
+SFX.push([t, 'whoosh']);
+const qv = seg('question', EP.question_say || plain(EP.question || ''), t + 0.2, EP.question_sub);
+const optAt = opts.map((_, i) => t + 0.5 + Math.min(qv, 2.2) * 0.6 + i * 0.3);
+optAt.forEach(a => SFX.push([a, 'msg_in']));
+const CD = Math.max(t + 0.2 + qv + 0.3, optAt[optAt.length - 1] + 0.6);
+const tv = seg('think', EP.think_say || '', CD + 0.05, EP.think_sub);
+const CD_LEN = 3.0;
+[0, 1, 2].forEach(i => SFX.push([CD + i, 'key']));
+const REV = CD + Math.max(CD_LEN, tv + 0.2); SFX.push([REV, 'success']);
+const rv = seg('reveal', EP.reveal_say, REV + 0.25, EP.reveal_sub);
+const CM = REV + Math.max(2.2, rv + 0.5); SFX.push([CM, 'msg_in']);
+const cv = seg('comment', EP.comment_say || '', CM + 0.1, EP.comment_sub);
+const { OUT_IN, END } = outroTimeline(CM + Math.max(1.6, cv + 0.5));
+const O = EP.outro || {};
+buildOutro(O.slogan || 'Studium — для репетиторів', O.slogan2 || 'Перші 2 тижні безкоштовно', { small1: 28 });
+
+let QH = null;
+function frame(tt) {
+  if (QH === null) QH = $('q').offsetHeight;
+  const oo = eIO(prog(tt, OUT_IN, OUT_IN + 0.45));
+  const qk = eBack(prog(tt, 0.3, 0.75));
+  css('q', { opacity: clamp(prog(tt, 0.3, 0.5)) * (1 - oo), transform: `translateY(${(1 - qk) * -40}px) scale(${lerp(0.9, 1, qk)})` });
+  const top0 = 96 + QH + 26;
+  const rev = prog(tt, REV, REV + 0.35);
+  els.forEach((e, i) => {
+    const a = prog(tt, optAt[i], optAt[i] + 0.35);
+    const right = i === RIGHT;
+    e.classList.toggle('right', right && rev > 0);
+    e.querySelector('.ok').style.opacity = right ? rev : 0;
+    const wrongShake = !right && rev > 0 && rev < 1 ? Math.sin(tt * 60) * 4 * (1 - rev) : 0;
+    css(e, { top: (top0 + i * 80) + 'px', opacity: clamp(a * 3) * (right ? 1 : lerp(1, 0.38, rev)) * (1 - oo),
+      transform: `translateX(${(1 - eOut(a)) * 60 + wrongShake}px) scale(${right && rev > 0 ? 1 + 0.05 * Math.sin(Math.PI * rev) : 1})` });
+  });
+  const below = top0 + opts.length * 80 + 14;
+  // countdown ring
+  const cdOn = tt >= CD && tt < REV;
+  const cp = clamp((tt - CD) / CD_LEN);
+  css('ring', { top: below + 'px', opacity: cdOn ? 1 : 0, transform: `scale(${cdOn ? lerp(0.6, 1, eBack(prog(tt, CD, CD + 0.3))) : 0.6})` });
+  $('arc').setAttribute('stroke-dashoffset', String(226.2 * cp));
+  $('num').textContent = String(Math.max(1, 3 - Math.floor((tt - CD))));
+  // explanation + comment prompt
+  const ek = eOut(prog(tt, REV + 0.3, REV + 0.7));
+  css('ex', { top: below + 'px', opacity: ek * (1 - oo), transform: `translateY(${(1 - ek) * 20}px)` });
+  const ck = prog(tt, CM, CM + 0.4);
+  const exH = EP.explain ? $('ex').offsetHeight + 16 : 0;
+  css('cm', { top: (below + exH) + 'px', opacity: clamp(ck * 3) * (1 - oo), transform: `scale(${ck > 0 ? lerp(0.6, 1, eBack(ck)) : 0.6})` });
+  const oi = renderOutro(tt, OUT_IN);
+  renderTag(1 - clamp(oi * 2));
+}
+hideSubsWhen(tt => tt >= OUT_IN + 0.3);
+finish(END, frame);
+</script>
+</body></html>

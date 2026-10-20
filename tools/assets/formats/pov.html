@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8">
+<title>format: pov</title>
+<!-- FORMAT «pov»: big text beats stacking as glass cards (POV / text on screen), a stamped punchline, outro.
+     EP: {format:"pov", tag?, beats:[{text, emoji?, say, sub?}], punch, punch_say?, punch_sub?, outro:{say?, sub?, slogan?, slogan2?}}
+     Text supports *highlight* and \n. Keep each beat under ~70 characters. -->
+<style>
+/*@CORE_CSS*/
+.card{position:absolute;left:36px;right:36px;top:0;padding:22px 26px 24px;border-radius:30px;background:rgba(255,255,255,.62);
+  border:1.5px solid rgba(255,255,255,.95);box-shadow:0 20px 50px rgba(30,110,110,.2);backdrop-filter:blur(16px);transform-origin:50% 100%}
+.card .em{font-size:46px;line-height:1;margin-bottom:10px}
+.card .tx{font-size:33px;font-weight:850;line-height:1.14;letter-spacing:-.6px;color:#123b3a}
+.card.first .tx{font-size:36px}
+#punch{top:300px}
+#flash{position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,rgba(143,240,216,.55),transparent 60%);opacity:0;z-index:6}
+</style></head><body>
+<div class="layer" id="stack"></div>
+<div id="flash"></div>
+<div class="kw" id="punch"></div>
+<!--@CORE_JS-->
+<script>
+setTag(EP.tag || 'POV');
+const beats = EP.beats || [];
+const cards = beats.map((b, i) => {
+  const d = document.createElement('div'); d.className = 'card' + (i === 0 ? ' first' : '');
+  d.innerHTML = (b.emoji ? `<div class="em">${esc(b.emoji)}</div>` : '') + `<div class="tx">${rich(b.text)}</div>`;
+  $('stack').appendChild(d); return d;
+});
+$('punch').innerHTML = rich(EP.punch || '');
+const pl = plain(subOf(EP.punch || '')).length;
+$('punch').style.fontSize = (pl <= 12 ? 56 : pl <= 24 ? 44 : 34) + 'px';
+
+let t = 0.4;
+const at = [];
+beats.forEach((b, i) => {
+  at.push(t);
+  SFX.push([t, i === 0 ? 'whoosh' : 'msg_in']);
+  const vd = seg('b' + i, b.say, t + 0.15, b.sub);
+  t += Math.max(1.7, vd + 0.5);
+});
+const FREEZE = t; SFX.push([FREEZE, 'hit']);
+const pd = seg('punch', EP.punch_say || plain(EP.punch || ''), FREEZE + 0.25, EP.punch_sub);
+const { OUT_IN, END } = outroTimeline(FREEZE + 0.25 + Math.max(pd, 1.4) + 0.6);
+const O = EP.outro || {};
+buildOutro(O.slogan || 'Studium — помічник репетитора', O.slogan2 || 'Перші 2 тижні безкоштовно', { small1: 28 });
+
+let H = null;
+const BOTTOM = 640, GAP = 18;
+function frame(tt) {
+  if (!H) H = cards.map(c => c.offsetHeight);
+  const out = eIO(prog(tt, FREEZE, FREEZE + 0.45));
+  cards.forEach((c, j) => {
+    let off = 0, age = 0;
+    for (let k = j + 1; k < cards.length; k++) {
+      const e = eOut(prog(tt, at[k], at[k] + 0.4));
+      off += (H[k] + GAP) * e; age += e;
+    }
+    const a = prog(tt, at[j], at[j] + 0.4);
+    const y = BOTTOM - H[j] - off + (1 - eOut(a)) * 70 - out * 260;
+    const sc = (a > 0 ? lerp(0.86, 1, eBack(a)) : 0.86) * (1 - 0.06 * Math.min(age, 3));
+    const fade = age < 1 ? 1 : age < 2 ? lerp(1, 0.5, age - 1) : age < 3 ? lerp(0.5, 0.22, age - 2) : lerp(0.22, 0, Math.min(1, age - 3));
+    css(c, { transform: `translateY(${y}px) scale(${sc})`, opacity: clamp(a * 3) * fade * (1 - out) });
+  });
+  const kp = prog(tt, FREEZE + 0.1, FREEZE + 0.45);
+  const po = eIO(prog(tt, OUT_IN, OUT_IN + 0.4));
+  css('punch', { opacity: clamp(kp * 3) * (1 - po), transform: `scale(${kp > 0 ? lerp(1.7, 1, eOut(kp)) : 1.7}) rotate(${lerp(-6, -2, kp)}deg)` });
+  $('flash').style.opacity = kp > 0 ? (1 - prog(tt, FREEZE + 0.15, FREEZE + 0.9)) * 0.9 * (1 - po) : 0;
+  const oi = renderOutro(tt, OUT_IN);
+  renderTag(1 - clamp(oi * 2));
+}
+hideSubsWhen(tt => tt >= OUT_IN + 0.3);
+finish(END, frame);
+</script>
+</body></html>
