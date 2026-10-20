@@ -58,7 +58,7 @@ function frame(tt) {
     const a = prog(tt, at[j], at[j] + 0.4);
     const y = BOTTOM - H[j] - off + (1 - eOut(a)) * 70 - out * 260;
     const sc = (a > 0 ? lerp(0.86, 1, eBack(a)) : 0.86) * (1 - 0.06 * Math.min(age, 3));
-    const fade = age < 1 ? 1 : age < 2 ? lerp(1, 0.5, age - 1) : age < 3 ? lerp(0.5, 0.22, age - 2) : lerp(0.22, 0, Math.min(1, age - 3));
+    const fade = age < 1 ? 1 : age < 2 ? lerp(1, 0.45, age - 1) : lerp(0.45, 0, Math.min(1, age - 2));   // only the current card and the one before stay visible
     css(c, { transform: `translateY(${y}px) scale(${sc})`, opacity: clamp(a * 3) * fade * (1 - out) });
   });
   const kp = prog(tt, FREEZE + 0.1, FREEZE + 0.45);

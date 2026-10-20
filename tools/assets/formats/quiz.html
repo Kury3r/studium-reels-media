@@ -76,10 +76,10 @@ function frame(tt) {
     e.classList.toggle('right', right && rev > 0);
     e.querySelector('.ok').style.opacity = right ? rev : 0;
     const wrongShake = !right && rev > 0 && rev < 1 ? Math.sin(tt * 60) * 4 * (1 - rev) : 0;
-    css(e, { top: (top0 + i * 80) + 'px', opacity: clamp(a * 3) * (right ? 1 : lerp(1, 0.38, rev)) * (1 - oo),
+    css(e, { top: (top0 + i * (opts.length > 3 ? 74 : 80)) + 'px', opacity: clamp(a * 3) * (right ? 1 : lerp(1, 0.38, rev)) * (1 - oo),
       transform: `translateX(${(1 - eOut(a)) * 60 + wrongShake}px) scale(${right && rev > 0 ? 1 + 0.05 * Math.sin(Math.PI * rev) : 1})` });
   });
-  const below = top0 + opts.length * 80 + 14;
+  const below = top0 + opts.length * (opts.length > 3 ? 74 : 80) + 14;
   // countdown ring
   const cdOn = tt >= CD && tt < REV;
   const cp = clamp((tt - CD) / CD_LEN);
@@ -87,11 +87,11 @@ function frame(tt) {
   $('arc').setAttribute('stroke-dashoffset', String(226.2 * cp));
   $('num').textContent = String(Math.max(1, 3 - Math.floor((tt - CD))));
   // explanation + comment prompt
-  const ek = eOut(prog(tt, REV + 0.3, REV + 0.7));
-  css('ex', { top: below + 'px', opacity: ek * (1 - oo), transform: `translateY(${(1 - ek) * 20}px)` });
+  // the explanation, then the comment prompt takes its place (keeps everything above the subtitle band)
   const ck = prog(tt, CM, CM + 0.4);
-  const exH = EP.explain ? $('ex').offsetHeight + 16 : 0;
-  css('cm', { top: (below + exH) + 'px', opacity: clamp(ck * 3) * (1 - oo), transform: `scale(${ck > 0 ? lerp(0.6, 1, eBack(ck)) : 0.6})` });
+  const ek = eOut(prog(tt, REV + 0.3, REV + 0.7)) * (1 - clamp(prog(tt, CM - 0.15, CM + 0.15)));
+  css('ex', { top: below + 'px', opacity: ek * (1 - oo), transform: `translateY(${(1 - ek) * 20}px)` });
+  css('cm', { top: below + 'px', opacity: clamp(ck * 3) * (1 - oo), transform: `scale(${ck > 0 ? lerp(0.6, 1, eBack(ck)) : 0.6})` });
   const oi = renderOutro(tt, OUT_IN);
   renderTag(1 - clamp(oi * 2));
 }
