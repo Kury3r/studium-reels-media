@@ -1,5 +1,7 @@
 """Episode JSON -> finished 1080x1920 MP4 (series «переписки репетитора», style «мятне скло»).
 
+Previews show the Reels/TikTok unsafe zones in red: no text or key element may sit in a red area.
+
 usage:
   make_reel.py EP.json --design DESIGN --list-voice            # print voice lines as JSON [{id, text, sub}]
   make_reel.py EP.json OUT.png --design DESIGN --preview [--voice-dir DIR]   # 6-frame contact sheet
@@ -48,7 +50,16 @@ def voice_files(voice_dir):
     return out
 
 
-def build_html(ep, design, out_dir, style, voice):
+SAFE_OVERLAY = '''<div style="position:absolute;inset:0;pointer-events:none;z-index:9999">
+<div style="position:absolute;left:0;right:0;top:0;height:124px;background:rgba(255,0,0,.22)"></div>
+<div style="position:absolute;left:0;right:0;top:767px;bottom:0;background:rgba(255,0,0,.22)"></div>
+<div style="position:absolute;left:0;width:35px;top:124px;height:643px;background:rgba(255,0,0,.22)"></div>
+<div style="position:absolute;left:514px;right:0;top:124px;height:306px;background:rgba(255,0,0,.22)"></div>
+<div style="position:absolute;left:444px;right:0;top:430px;height:337px;background:rgba(255,0,0,.22)"></div>
+</div>'''
+
+
+def build_html(ep, design, out_dir, style, voice, overlay=False):
     ep = json.loads(json.dumps(ep))
     def fix(p):
         if not p or p.startswith(('emoji:', 'file:', 'http', 'data:')):
@@ -69,6 +80,8 @@ def build_html(ep, design, out_dir, style, voice):
         qr = qr.replace('#f3f0e4', '#ffffff').replace('#F3F0E4', '#ffffff').replace('#0f4a2e', '#0d4d48').replace('#0F4A2E', '#0d4d48')
         html = html.replace('{{QR}}', qr)
     html = html.replace('<script>\n', '<script>window.EP = ' + json.dumps(ep, ensure_ascii=False) + ';</script>\n<script>\n', 1)
+    if overlay and style == 'glass':
+        html = html.replace('</body>', SAFE_OVERLAY + '</body>')
     p = pathlib.Path(out_dir) / 'episode.html'
     p.write_text(html, encoding='utf-8')
     return p
@@ -115,7 +128,7 @@ def main():
     vw, vh = (540, 960) if a.style == 'glass' else (1080, 1920)
     from playwright.sync_api import sync_playwright
     work = pathlib.Path(tempfile.mkdtemp(prefix='reel-'))
-    page_path = build_html(ep, a.design, work, a.style, voice)
+    page_path = build_html(ep, a.design, work, a.style, voice, overlay=a.preview)
     errors = []
     with sync_playwright() as p:
         kw = {'args': ['--hide-scrollbars', '--force-color-profile=srgb', '--allow-file-access-from-files']}

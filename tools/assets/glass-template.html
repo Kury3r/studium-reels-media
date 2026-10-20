@@ -2,6 +2,8 @@
 <html lang="uk"><head><meta charset="utf-8">
 <title>Переписки репетитора · мятне скло</title>
 <!-- Episode template, style «Мятное стекло». 540x960 CSS px, rendered at deviceScaleFactor 2 (1080x1920).
+     SAFE ZONE (Reels/TikTok UI covers the rest), CSS px: top 124, bottom 767, left 35, right 514 for y<430 and 444 for y>=430.
+     Every text and key element must stay inside it.
      window.EP is injected by make_reel.py. All frame state is computed from t in render(t). -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -39,32 +41,32 @@ body{font-family:Inter,"Segoe UI",system-ui,"Noto Color Emoji",sans-serif;color:
 #input .ph{opacity:.5}
 #input .caret{display:inline-block;width:2px;height:17px;background:#0aa58e;vertical-align:-3px;margin-left:1px}
 #send{position:absolute;right:18px;bottom:19px;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#14b89f,#3f9bff);color:#fff;display:grid;place-items:center;font-size:15px;z-index:4}
-#bigclock{position:absolute;left:0;right:0;top:118px;text-align:center;font-size:132px;font-weight:900;letter-spacing:-4px;color:#0a8f86;
+#bigclock{position:absolute;left:0;right:0;top:150px;text-align:center;font-size:132px;font-weight:900;letter-spacing:-4px;color:#0a8f86;
   text-shadow:0 3px 0 #fff,0 10px 40px rgba(255,255,255,.95),0 0 60px rgba(63,224,197,.35);z-index:6}
 .kw{position:absolute;left:30px;right:30px;text-align:center;font-weight:900;color:#0a8f86;letter-spacing:-1px;line-height:1.08;
   text-shadow:0 2px 0 #fff,0 6px 30px rgba(255,255,255,.95),0 0 40px rgba(63,224,197,.35);z-index:7}
-#sub{position:absolute;left:24px;right:24px;bottom:50px;text-align:center;z-index:9}
+#sub{position:absolute;left:96px;right:96px;bottom:196px;text-align:center;z-index:9}
 #sub span{display:inline-block;padding:9px 16px;border-radius:16px;background:rgba(255,255,255,.72);border:1px solid #fff;backdrop-filter:blur(10px);
-  font-size:18px;font-weight:650;line-height:1.3;box-shadow:0 8px 24px rgba(30,110,110,.12)}
-#series{position:absolute;top:22px;left:0;right:0;text-align:center;z-index:8}
+  font-size:17px;font-weight:650;line-height:1.3;box-shadow:0 8px 24px rgba(30,110,110,.12)}
+#series{position:absolute;top:128px;left:0;right:0;text-align:center;z-index:8}
 #series span{display:inline-block;padding:6px 14px;border-radius:14px;background:rgba(255,255,255,.6);border:1px solid #fff;font-size:13px;font-weight:800;color:#1d4a3a;letter-spacing:.2px}
 #appPhone .scr img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
 #outro{position:absolute;inset:0;z-index:8}
 #outro>*{position:absolute;left:0;right:0;text-align:center}
-#logo{left:50%!important;right:auto!important;top:96px;width:140px;height:140px;margin-left:-70px;border-radius:50%;background:rgba(255,255,255,.55);
+#logo{left:50%!important;right:auto!important;top:136px;width:140px;height:140px;margin-left:-70px;border-radius:50%;background:rgba(255,255,255,.55);
   border:1.5px solid #fff;box-shadow:0 20px 50px rgba(30,110,110,.25),0 0 50px rgba(63,224,197,.35);backdrop-filter:blur(12px);display:grid;place-items:center}
-#word{top:258px;font:700 25px Georgia,serif;letter-spacing:9px;color:#1d4a3a;padding-left:9px}
+#word{top:290px;font:700 25px Georgia,serif;letter-spacing:9px;color:#1d4a3a;padding-left:9px}
 .sl{font-size:34px;font-weight:850;letter-spacing:-.8px;line-height:1.12;padding:0 28px}
-#qr{left:50%!important;right:auto!important;top:470px;width:220px;margin-left:-110px;padding:15px;border-radius:26px;background:rgba(255,255,255,.75);
+#qr{left:50%!important;right:auto!important;top:448px;width:210px;margin-left:-105px;padding:15px;border-radius:26px;background:rgba(255,255,255,.75);
   border:1.5px solid #fff;box-shadow:0 20px 50px rgba(30,110,110,.22)}
-#qr svg{width:190px;height:190px;display:block;border-radius:10px}
+#qr svg{width:180px;height:180px;display:block;border-radius:10px}
 #qr b{display:block;margin-top:10px;font-size:16px;color:#0a8f86}
 </style></head><body>
 <div id="bg"><div class="glow" id="g1" style="width:380px;height:380px;background:#8ff0d8"></div><div class="glow" id="g2" style="width:340px;height:340px;background:#a9c8ff"></div><div class="glow" id="g3" style="width:260px;height:260px;background:#c8fff0"></div></div>
 
 <div class="layer" id="chatL">
-  <div class="phone" id="phone" style="left:95px;top:132px;width:350px;height:722px;transform-origin:50% 18%">
-    <div class="chip"><span id="chipT">Ваш телефон</span></div>
+  <div class="phone" id="phone" style="left:105px;top:166px;width:330px;height:536px;transform-origin:50% 20%">
+    <div class="chip" style="display:none"><span id="chipT">Ваш телефон</span></div>
     <div class="scr"><div class="island"></div><div class="sbar" id="clock"></div><div class="sbar2">5G ▮▮▮</div>
       <div id="head"><div id="ava"></div><div id="nm"></div><div id="st">в мережі</div><div id="badge">1</div></div>
       <div id="wall"></div>
@@ -73,11 +75,11 @@ body{font-family:Inter,"Segoe UI",system-ui,"Noto Color Emoji",sans-serif;color:
   </div>
 </div>
 <div id="bigclock"></div>
-<div class="kw" id="punch"></div>
+<div class="kw" id="punch" style="left:96px;right:96px"></div>
 
 <div class="layer" id="appL">
-  <div class="kw" id="appCap" style="top:58px;font-size:32px"></div>
-  <div class="phone" id="appPhone" style="left:115px;top:200px;width:310px;height:670px">
+  <div class="kw" id="appCap" style="top:134px;left:40px;right:40px;font-size:30px"></div>
+  <div class="phone" id="appPhone" style="left:122px;top:228px;width:296px;height:470px">
     <div class="scr"><img id="appImg" alt=""></div>
   </div>
 </div>
@@ -87,8 +89,8 @@ body{font-family:Inter,"Segoe UI",system-ui,"Noto Color Emoji",sans-serif;color:
     <rect x="12" y="22" width="40" height="40" rx="2"/><rect x="8" y="64" width="48" height="8" rx="4"/><rect x="2" y="76" width="60" height="8"/></g>
     <g fill="#eaf7f3"><rect x="19" y="26" width="4" height="32" rx="2"/><rect x="30" y="26" width="4" height="32" rx="2"/><rect x="41" y="26" width="4" height="32" rx="2"/></g></svg></div>
   <div id="word">STUDIUM</div>
-  <div class="sl" id="sl1" style="top:318px"></div>
-  <div class="sl" id="sl2" style="top:362px;color:#0a8f86;font-size:26px"></div>
+  <div class="sl" id="sl1" style="top:344px"></div>
+  <div class="sl" id="sl2" style="top:388px;color:#0a8f86;font-size:26px"></div>
   <div id="qr">{{QR}}<b>@CRM_StudiumBot</b></div>
 </div>
 <div id="series"><span id="seriesT"></span></div>
@@ -117,7 +119,7 @@ $('ava').style.background = `linear-gradient(135deg, ${C.color || '#ffc9a8'}, ${
 $('seriesT').textContent = `переписки репетитора #${EP.n}`;
 $('punch').innerHTML = esc(EP.punch).replace(/\n/g, '<br>');
 const pl = subOf(EP.punch).length;
-$('punch').style.fontSize = (pl <= 14 ? 50 : pl <= 26 ? 40 : 32) + 'px';
+$('punch').style.fontSize = (pl <= 12 ? 46 : pl <= 24 ? 38 : 30) + 'px';
 const OUT = EP.outro || { type: 'series' };
 const SELL = OUT.type === 'bot';
 if (SELL) { $('appCap').innerHTML = esc(OUT.caption || '').replace(/\n/g, '<br>'); $('appImg').src = OUT.screen; }
@@ -236,7 +238,7 @@ function typedText(tt) {
   }
   return '';
 }
-const BOTTOM = 554 - 100 - 66 - 8, GAP = 10;
+const BOTTOM = (536 - 22) - 100 - 66 - 10, GAP = 10;   // bubbles stack right above the input bar
 let heights = null;
 const css = (id, o) => Object.assign($(id).style, o);
 
@@ -285,7 +287,7 @@ function render(tt) {
   $('send').style.opacity = txt ? 1 : 0;
   // punch keyword
   const kp = prog(tt, FREEZE + 0.1, FREEZE + 0.5);
-  css('punch', { top: '380px', opacity: clamp(kp * 3) * (1 - pout), transform: `scale(${kp > 0 ? lerp(.6, 1, eBack(kp)) : .6})` });
+  css('punch', { top: '330px', opacity: clamp(kp * 3) * (1 - pout), transform: `scale(${kp > 0 ? lerp(.6, 1, eBack(kp)) : .6})` });
   // app screen (sell)
   if (SELL) {
     const ai = eOut(prog(tt, APP_IN + 0.45, APP_IN + 1.2)), ao = eIO(prog(tt, APP_OUT, APP_OUT + 0.55));
@@ -303,7 +305,7 @@ function render(tt) {
     css(id, { opacity: k, transform: `translateY(${(1 - k) * 22}px)` });
   });
   // series tag
-  $('series').style.opacity = (intro ? clamp(prog(tt, INTRO_END - 0.2, INTRO_END + 0.2)) : 1) * (1 - clamp(oi * 2));
+  $('series').style.opacity = (intro ? clamp(prog(tt, INTRO_END - 0.2, INTRO_END + 0.2)) : 1) * (1 - (SELL ? prog(tt, CHAT_OUT, CHAT_OUT + 0.4) : clamp(oi * 2)));
   // subtitles
   let sb = ''; for (const s of SEGS) if (tt >= s.at && tt < s.at + s.dur + 0.15) sb = s.sub;
   $('subT').textContent = sb; $('sub').style.opacity = sb ? 1 : 0;
