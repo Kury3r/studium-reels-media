@@ -74,7 +74,7 @@ function renderSubs(tt) {
   let ch = null;
   for (const c of SUBS) if (tt >= c.start - 0.02 && tt < c.end + 0.12) ch = c;
   const box = $('sub');
-  if (!ch || subHidden(tt)) { box.style.opacity = 0; return; }
+  if (!ch || subHidden(tt) || EP.subtitles === false) { box.style.opacity = 0; return; }   // episode "subtitles": false = no subtitles
   box.style.opacity = 1;
   if (ch !== lastChunk) {
     box.innerHTML = '<span class="sbox">' + ch.words.map(w => `<span class="w">${esc(w)}</span>`).join(' ') + '</span>';
