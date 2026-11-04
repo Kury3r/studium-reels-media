@@ -263,9 +263,17 @@ def main():
         sys.exit('ffmpeg failed')
     wav = str(work / 'mix.wav')
     mix(cues, segments, files, dur, wav)
+    speed = float(ep.get('speed', 1.2))   # owner's rule: the whole reel (picture + voice) plays 1.2x faster; "speed": 1 = normal
+    if abs(speed - 1) > 1e-3:
+        vargs = ['-filter:v', f'setpts=PTS/{speed}', '-r', str(a.fps), '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p']
+        aflt = f'atempo={speed},loudnorm=I=-14:TP=-1.5:LRA=11'
+        dur = dur / speed
+    else:
+        vargs = ['-c:v', 'copy']
+        aflt = 'loudnorm=I=-14:TP=-1.5:LRA=11'
     r = subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', str(silent), '-i', wav, '-map', '0:v', '-map', '1:a',
-                        '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11', '-ar', '48000',
-                        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', a.out])
+                        '-af', aflt, '-ar', '48000', *vargs,
+                        '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', a.out])
     if r.returncode != 0:
         sys.exit('mux failed')
     shutil.rmtree(work, ignore_errors=True)
