@@ -48,7 +48,9 @@ document.querySelector('#cm span').textContent = EP.comment_text || 'А ви я�
 let t = 0.35;
 SFX.push([t, 'whoosh']);
 const qv = seg('question', EP.question_say || plain(EP.question || ''), t + 0.2, EP.question_sub);
-const optAt = opts.map((_, i) => t + 0.5 + Math.min(qv, 2.2) * 0.6 + i * 0.3);
+// answers arrive one by one (EP.options_gap s apart, default 0.55) so each can be read
+const GAP = EP.options_gap || 0.55;
+const optAt = opts.map((_, i) => t + 0.6 + Math.min(qv, 2.2) * 0.55 + i * GAP);
 optAt.forEach(a => SFX.push([a, 'msg_in']));
 const CD = Math.max(t + 0.2 + qv + 0.3, optAt[optAt.length - 1] + 0.6);
 const tv = seg('think', EP.think_say || '', CD + 0.05, EP.think_sub);
@@ -71,13 +73,16 @@ function frame(tt) {
   const top0 = 96 + QH + 26;
   const rev = prog(tt, REV, REV + 0.35);
   els.forEach((e, i) => {
-    const a = prog(tt, optAt[i], optAt[i] + 0.35);
+    const a = prog(tt, optAt[i], optAt[i] + 0.42);
     const right = i === RIGHT;
     e.classList.toggle('right', right && rev > 0);
     e.querySelector('.ok').style.opacity = right ? rev : 0;
     const wrongShake = !right && rev > 0 && rev < 1 ? Math.sin(tt * 60) * 4 * (1 - rev) : 0;
-    css(e, { top: (top0 + i * (opts.length > 3 ? 74 : 80)) + 'px', opacity: clamp(a * 3) * (right ? 1 : lerp(1, 0.38, rev)) * (1 - oo),
-      transform: `translateX(${(1 - eOut(a)) * 60 + wrongShake}px) scale(${right && rev > 0 ? 1 + 0.05 * Math.sin(Math.PI * rev) : 1})` });
+    const ab = eBack(a), side = i % 2 ? 1 : -1;
+    css(e, { top: (top0 + i * (opts.length > 3 ? 74 : 80)) + 'px', opacity: clamp(a * 2.5) * (right ? 1 : lerp(1, 0.38, rev)) * (1 - oo),
+      transform: `translateX(${(1 - eOut(a)) * 90 * side + wrongShake}px) translateY(${(1 - ab) * 18}px) scale(${lerp(0.88, 1, ab) * (right && rev > 0 ? 1 + 0.05 * Math.sin(Math.PI * rev) : 1)})` });
+    const lb = eBack(prog(tt, optAt[i] + 0.12, optAt[i] + 0.42));
+    e.querySelector('.l').style.transform = `scale(${lb}) rotate(${(1 - lb) * -90}deg)`;
   });
   const below = top0 + opts.length * (opts.length > 3 ? 74 : 80) + 14;
   // countdown ring
